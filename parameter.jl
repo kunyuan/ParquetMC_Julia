@@ -1,7 +1,4 @@
-include("utility/grid.jl")
-using Random
 using StaticArrays
-using .Grid
 ################ Global parameters  ##################################
 const GAMMA, SIGMA, POLAR, DELTA = (1, 2, 3, 4)
 const DIM, SPIN = (3, 2)
@@ -24,44 +21,28 @@ const Beta = beta / Ef # rescale the temperature
 const MaxK = maxK * Kf
 
 ############ Global External Variable Grid #########################
-# cos(theta) grids
-const AngGrid = Grid.UniformGrid(-1.0, 1.0, AngGridSize)
-
-let
-    # Tau Grid construction
-    lambda = Beta / Ef / TauGridSize / 3.0
-    c1 = Coeff([0.0, Beta / 2.0], [1.0, TauGridSize / 2 + 0.5], lambda, true)
-    c2 = Coeff([Beta / 2.0, Beta], [TauGridSize / 2 - 0.5, TauGridSize], lambda, false)
-    const global TauGrid =
-        Grid.LogGrid([c1, c2], [1, Int(TauGridSize / 2) + 1, TauGridSize])
-    TauGrid.grid[1], TauGrid.grid[end] = (1.0e-8, Beta - 1.0e-8)
-
-    # MomGrid construction
-    if DiagType == SIGMA
-        # Fermionic Grid
-        @assert MaxK > Kf "MaxK must larger than Kf!"
-        kFi = floor(Int, KGridSize * log(Kf) / log(MaxK - Kf))
-        lambda = sqrt(Ef * Beta) / kFi
-        c1 = Coeff([0.0, Kf], [1.0, kFi + 1.0], lambda, false)
-        c2 = Coeff([Kf, MaxK], [kFi, KGridSize], lambda, true)
-        const global KGrid = Grid.LogGrid([c1, c2], [1, kFi, KGridSize])
-        KGrid.grid[1] = 1.0e-6
-    else
-        # Bosonic Grid
-        @assert MaxK > 2.0 * Kf "MaxK must larger than 2Kf!"
-        kFi, twokFi = (Int(KGridSize / 3), Int(KGridSize / 3 * 2))
-        lambda = sqrt(Ef * Beta) / kFi
-        c1 = Coeff([0.0, Kf], [1.0, kFi + 1.0], lambda, true)
-        c2 = Coeff([Kf, 2.0 * Kf], [kFi, twokFi + 1.0], lambda, false)
-        c3 = Coeff([2.0 * Kf, MaxK], [twokFi, KGridSize], lambda, true)
-        const global KGrid = Grid.LogGrid([c1, c2, c3], [1, kFi, twokFi, KGridSize])
-        KGrid.grid[1] = 1.0e-6
-    end
-end
-
 ########### Other constants  #####################################
 const Mom = SVector{3,Float64}
 const IN, OUT = (1, 2)
 const INL, OUTL, INR, OUTR = (1, 2, 3, 4)
 const DIR, EX = (1, 2)
 const DOWN, UP = (1, 2)
+
+########## Global function  #######################################
+function Counter()
+    _counter::Int128 = 0
+    step() = (_counter += 1)
+    state() = _counter
+    ()->(step, state) # make step() and state() public
+end
+
+@inline function InterTauNum(order)
+    if DiagType == SIGMA || DiagType == DELTA
+        return order - 2
+    elseif DiagType == POLAR
+        return order - 1
+    else
+        # GAMMA
+        return order
+    end
+end
