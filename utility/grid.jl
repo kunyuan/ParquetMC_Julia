@@ -9,7 +9,7 @@
 module Grid
 using StaticArrays
 
-struct Coeff 
+struct Coeff
     bound::SVector{2,Real}
     idx::SVector{2,Real}
     lambda::Real
@@ -53,8 +53,8 @@ struct LogGrid
         @assert segment[1] == 1 "Segment shoudl start with 1!"
         @assert length(segment) == length(coeff) + 1 "Number of coeff and segments don't match!"
         grid = Real[]
-        for i in 1:length(segment) - 1
-            for idx in segment[i]:segment[i + 1]
+        for i = 1:length(segment)-1
+            for idx = segment[i]:segment[i+1]
                 push!(grid, _grid(coeff[i], idx))
             end
         end
@@ -65,7 +65,7 @@ end
 struct UniformGrid
     size::Int
     grid::Array{Real,1}
-    
+
     function UniformGrid(head::Real, tail::Real, size::Int)
         @assert size > 1 "Size must be large than 1"
         grid = LinRange(head, tail, size)
@@ -73,7 +73,7 @@ struct UniformGrid
     end
 end
 
-    export Coeff, LogGrid, UniformGrid
+export Coeff, LogGrid, UniformGrid
 end
 
 # using .Grid
@@ -82,4 +82,3 @@ end
 # for i in 1:32
 #     println(Grid.grid(logGrid, i))
 # end
-
