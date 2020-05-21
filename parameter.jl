@@ -1,9 +1,10 @@
 using StaticArrays
 ################ Global parameters  ##################################
 const GAMMA, SIGMA, POLAR, DELTA = (1, 2, 3, 4)
-const DIM, SPIN = (3, 2)
-const BoldG = true
 const DiagType = SIGMA
+# const DiagType = GAMMA
+const DIM, SPIN = (3, 2)
+const (BoldG, BoldVer4) = (true, true)
 const Order = 2
 const beta, Rs, Mass2, Lambda, maxK = (40.0, 1.0, 0.0, 1.0, 3.0)
 const TauGridSize, KGridSize, AngGridSize = (128, 32, 32)
@@ -28,6 +29,14 @@ const INL, OUTL, INR, OUTR = (1, 2, 3, 4)
 const DIR, EX = (1, 2)
 const DOWN, UP = (1, 2)
 
+struct VerWeight
+    dir::Real
+    ex::Real
+    function VerWeight()
+        new(0.0, 0.0)
+    end
+end
+
 ########## Global function  #######################################
 function Counter()
     _counter::Int128 = 0
@@ -46,3 +55,6 @@ end
         return order
     end
 end
+
+squaredNorm(k) = DIM == 3 ? k[1]^2 + k[2]^2 + k[3]^2 : k[1]^2 + k[2]^2
+norm(k) = DIM == 3 ? sqrt(k[1]^2 + k[2]^2 + k[3]^2) : sqrt(k[1]^2 + k[2]^2)

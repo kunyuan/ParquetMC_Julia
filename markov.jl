@@ -3,30 +3,42 @@ include("parameter.jl")
 include("grid.jl")
 using Random
 const UpdateNum = 9
-
 const LastTidx = 2 * Order
-
-currOrder = 0
-currAbsWeight = 0.0
-currExtTidx = 1
-currExtKidx = 1
-currExtAngidx = 1
 
 function init(_counter, _rng)
     global rng = _rng
     global counter = _counter
+
+    global currOrder = 0
+    global currAbsWeight = 0.0
+    global currScale, currExtTidx, currExtKidx, currExtAngidx = (1, 1, 1, 1)
+
     global varTau = rand(rng, LastTidx) * Beta
     varTau[LastTidx] = Grid.tau.grid[currExtTidx]
-    global varK = Vector{Mom}(undef, Order + 1)
+    global varK = Vector{Mom}(undef, Order + 4)
     rand!(rng, varK)
     varK *= Kf
-    println(Grid.tau.size)
+
+    if DiagType == GAMMA
+        kL = [Kf, 0.0, 0.0]
+        θ = acos(Grid.angle.grid[currExtAngidx])
+        kR = [Kf * cos(θ), Kf * sin(θ), 0.0]
+        varK[INL], varK[OUTL] = (kL[1:DIM], kL[1:DIM], kR[1:DIM], kR[1:DIM])
+    else
+        k = [Grid.K.grid[currExtKidx], 0.0, 0.0]
+        varK[1] = k[1:DIM]
+    end
 end
 
 function printStatus()
     # Var.counter += 1
     ReWeight[2] = 1.6
+    println(currExtAngidx)
     println(Beta)
+end
+
+function evaluate()
+    return
 end
 
 function changeOrder()
@@ -46,10 +58,6 @@ function changeExtTau()
 end
 
 function changeExtK()
-    return
-end
-
-function evaluate()
     return
 end
 

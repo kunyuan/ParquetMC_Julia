@@ -94,7 +94,7 @@ if DiagType == SIGMA
 else
     # Bosonic Grid
     @assert MaxK > 2.0 * Kf "MaxK must larger than 2Kf!"
-    kFi, twokFi = (Int(KGridSize / 3), Int(KGridSize / 3 * 2))
+    kFi, twokFi = (floor(Int, KGridSize / 3), floor(Int, KGridSize / 3 * 2))
     lambda = sqrt(Ef * Beta) / kFi
     c1 = Grid.Coeff([0.0, Kf], [1.0, kFi + 1.0], lambda, true)
     c2 = Grid.Coeff([Kf, 2.0 * Kf], [kFi, twokFi + 1.0], lambda, false)
