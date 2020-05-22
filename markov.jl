@@ -1,7 +1,9 @@
 module Markov
 include("parameter.jl")
 include("grid.jl")
+include("diag/vertex4.jl")
 using Random
+import .Vertex4
 const UpdateNum = 9
 const LastTidx = 2 * Order
 
@@ -27,6 +29,12 @@ function init(_counter, _rng)
     else
         k = [Grid.K.grid[currExtKidx], 0.0, 0.0]
         varK[1] = k[1:DIM]
+    end
+
+    global vertex4 = Vector{Vertex4.Ver4}(undef, 0)
+    chan = [I, T, U, S, TC, UC]
+    for order = 1:Order
+        push!(vertex4, Vertex4.Ver4(0, order, chan, 5, 1, RIGHT, false))
     end
 end
 

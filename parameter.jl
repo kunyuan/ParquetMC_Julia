@@ -28,6 +28,8 @@ const IN, OUT = (1, 2)
 const INL, OUTL, INR, OUTR = (1, 2, 3, 4)
 const DIR, EX = (1, 2)
 const DOWN, UP = (1, 2)
+const LEFT, RIGHT = (1, 2)
+const I, T, U, S, TC, UC = (1, 2, 3, 4, 5, 6)
 
 struct VerWeight
     dir::Real
@@ -42,7 +44,7 @@ function Counter()
     _counter::Int128 = 0
     step() = (_counter += 1)
     state() = _counter
-    ()->(step, state) # make step() and state() public
+    () -> (step, state) # make step() and state() public
 end
 
 @inline function InterTauNum(order)
@@ -58,3 +60,4 @@ end
 
 squaredNorm(k) = DIM == 3 ? k[1]^2 + k[2]^2 + k[3]^2 : k[1]^2 + k[2]^2
 norm(k) = DIM == 3 ? sqrt(k[1]^2 + k[2]^2 + k[3]^2) : sqrt(k[1]^2 + k[2]^2)
+dot(k, q) = DIM == 3 ? k[1] * q[1] + k[2] * q[2] + k[3] * q[3] : k[1] * q[1] + k[2] * q[2]
