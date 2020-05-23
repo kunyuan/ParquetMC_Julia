@@ -7,11 +7,6 @@ using D3Trees
 const ChanMap = [I, T, U, S, T, U]
 const SymFactor = [1.0, -1.0, 1.0, -0.5, 1.0, -1.0]
 
-# function init(_varT::Vector{Float}, _varK::Vector{Mom})
-#     global varT = _varT
-#     global varK = _varK
-# end
-
 struct Green
     Tpair::Vector{Tuple{Int,Int}}
     weight::Vector{Float}
@@ -35,8 +30,6 @@ function addTidx(_obj, _Tidx)
 end
 
 struct IdxMap
-    Lver::Int
-    Rver::Int
     G::Int
     Gx::Int
     ver::Int
@@ -108,12 +101,13 @@ struct Bubble{_Ver4} # template Bubble to avoid mutually recursive struct
                 elseif chan == TC || chan == UC
                     # counterterms are equal-time
                     VerTidx = addTidx(ver4, (LvT[INL], LvT[INL], LvT[INL], LvT[INL]))
-                    GTxidx = addTidx(ver4.G[chan], (RvT[OUTL], LvT[INR]))
+                    GTxidx = -1 # do not need it
+                    # GTxidx = addTidx(ver4.G[chan], (RvT[OUTL], LvT[INR]))
                 end
 
                 @assert ver4.Tpair[end][1] == ver4.Tidx "InL Tidx must be the same for all Tpairs in the vertex4"
                 @assert GTidx != 0 && VerTidx != 0 "index cann't be zero!"
-                push!(map, IdxMap(lt, rt, GTidx, GTxidx, VerTidx))
+                push!(map, IdxMap(GTidx, GTxidx, VerTidx))
             end
         end
         return new(chan, Lver, Rver, map)
@@ -129,13 +123,13 @@ struct Ver4
     inBox::Bool
 
     K::MVector{3,Mom}
-    G::MVector{6,Green}
+    G::MVector{4,Green}
     Tpair::Vector{Tuple{Int,Int,Int,Int}}
     weight::Vector{VerWeight}
     bubble::Vector{Bubble{Ver4}}
 
     function Ver4(lvl, loopNum, chan, tidx, side, inbox, isfast = false)
-        g = @MVector [Green() for i = 1:6]
+        g = @MVector [Green() for i = 1:4]
         k = @MVector [zero(Mom) for i = 1:3]
         ver4 = new(lvl, loopNum, Set(chan), tidx, side, inbox, k, g,  [], [], [])
         if loopNum <= 0
@@ -227,54 +221,60 @@ function eval(
             eval(b.Rver, K, KoutL, Ks, KoutR, Kidx + 1, varT, varK)
         end
 
-        # w = VerWeight(0.0, 0.0)
-        for map in b.map
-            gWeight = (c == TC || c == UC || ver4.inBox) ? bubWeight * Factor :
-                G[1].weight[map.G] * G[c].weight[map.Gx] * Factor
+        rN = length(b.Rver.weight)
+        for (l, Lw) in enumerate(b.Lver.weight)
+            for (r, Rw) in enumerate(b.Rver.weight)
+                map = b.map[(l - 1) * rN + r]
 
-            Lw, Rw = (b.Lver.weight[map.Lver], b.Rver.weight[map.Rver])
-
+                if ver4.inBox || c == TC || c == UC
+                    gWeight = bubWeight * Factor
+                else
+                    gWeight = G[1].weight[map.G] * G[c].weight[map.Gx] * Factor
+                end
             # println("g: ", G[1].weight[map.G], ", ", G[c].weight[map.Gx])
             # println("order ", ver4.loopNum, ", c=$c, ", gWeight, ", ", Lw, ", ", Rw)
 
-            if fast && ver4.level == 0
-                pair = ver4.Tpair[map.ver]
-                dT = varT[pair[INL]] - varT[pair[OUTL]] + varT[pair[INR]] - varT[pair[OUTR]]
-                gWeight *= cos(2.0 * pi / Beta * dT)
-                w = ver4.weight[ChanMap[c]]
-            else
-                w = ver4.weight[map.ver]
-            end
+                if fast && ver4.level == 0
+                    pair = ver4.Tpair[map.ver]
+                    dT = varT[pair[INL]] - varT[pair[OUTL]] + varT[pair[INR]] - varT[pair[OUTR]]
+                    gWeight *= cos(2.0 * pi / Beta * dT)
+                    w = ver4.weight[ChanMap[c]]
+                else
+                    w = ver4.weight[map.ver]
+                end
 
-            if c == T || c == TC
-                w.dir += gWeight * (Lw.dir * Rw.dir * SPIN + Lw.dir * Rw.ex + Lw.ex * Rw.dir)
-                w.ex += gWeight * Lw.ex * Rw.ex
-            elseif c == U || c == UC
-                w.dir += gWeight * Lw.ex * Rw.ex
-                w.ex += gWeight * (Lw.dir * Rw.dir * SPIN + Lw.dir * Rw.ex + Lw.ex * Rw.dir)
-            else
+                if c == T || c == TC
+                    w.dir += gWeight * (Lw.dir * Rw.dir * SPIN + Lw.dir * Rw.ex + Lw.ex * Rw.dir)
+                    w.ex += gWeight * Lw.ex * Rw.ex
+                elseif c == U || c == UC
+                    w.dir += gWeight * Lw.ex * Rw.ex
+                    w.ex += gWeight * (Lw.dir * Rw.dir * SPIN + Lw.dir * Rw.ex + Lw.ex * Rw.dir)
+                else
                 # S channel,  see the note "code convention"
-                w.dir += gWeight * (Lw.dir * Rw.ex + Lw.ex * Rw.dir)
-                w.ex += gWeight * (Lw.dir * Rw.dir + Lw.ex * Rw.ex)
+                    w.dir += gWeight * (Lw.dir * Rw.ex + Lw.ex * Rw.dir)
+                    w.ex += gWeight * (Lw.dir * Rw.dir + Lw.ex * Rw.ex)
+                end
+
             end
-
-            # w *= gWeight
-
-            # weight=ver4.weight
-
-            # if fast && ver4.level == 0
-            #     pair = ver4.Tpair[map.ver]
-            #     dT = varT[pair[INL]] - varT[pair[OUTL]] + varT[pair[INR]] - varT[pair[OUTR]]
-            #     gWeight *= cos(2.0 * pi / Beta * dT)
-            #     ver4.weight[ChanMap[c]].dir += w.dir * gWeight
-            #     ver4.weight[ChanMap[c]].ex += w.ex * gWeight
-            # else
-            #     ver4.weight[map.ver] += w * gWeight
-            # end
         end
 
     end
 end
+
+# struct Ver4Tree
+#     ver4pool::Vector{Ver4} # the first element is the root
+#     Tpair::Vector{Tuple{Int,Int,Int,Int}} # the Tpair list of the Root vertex4
+# end
+
+# const Root = Vector{Ver4Tree}(undef, 0)
+
+# function init(orderList)
+#     resize!(Root, 0)
+#     for order in orderList
+
+#     end
+# end
+
 
 function _expandBubble(children, text, style, bub::Bubble, parent)
     push!(children, zeros(Int, 0))
