@@ -1,7 +1,7 @@
 const GAMMA, SIGMA, POLAR, DELTA = (1, 2, 3, 4)
 ################ Global parameters  ##################################
 
-const Order = 5
+const Order = 4
 const totalStep = 101
 const beta, Rs, Mass2, Lambda, maxK = (40.0, 1.0, 0.0, 1.0, 3.0)
 const ReWeight = [1.0, 3.0, 30.0, 1.0, 0.2, 0.1, 0.01]
