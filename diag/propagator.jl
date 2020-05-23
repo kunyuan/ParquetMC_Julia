@@ -30,30 +30,37 @@ function interaction(mom::Mom, verOrder::Int = 0)
     return weight
 end
 
-function interaction(kInL::Mom, kOutL::Mom, kInR::Mom, kOutR::Mom, Boxed::Bool, extQ::Real = -1.0)
-    weight = VerWeight()
+function interaction(
+    kInL::Mom,
+    kOutL::Mom,
+    kInR::Mom,
+    kOutR::Mom,
+    Boxed::Bool,
+    extQ::Real = -1.0,
+)
+    weight = zero(VerWeight)
     qDi2 = squaredNorm(kInL - kOutL)
-    weight.dir = -8.0 * pi / (qDi2 + Mass2 + Lambda)
+    weight[DIR] = -8.0 * pi / (qDi2 + Mass2 + Lambda)
     if (DiagType == SIGMA && qDi2 < 1.0e-14) ||
        (DiagType == POLAR && abs(qDi2 - extQ^2) < 1.0e-14)
-        weight.dir = 0.0
+        weight[DIR] = 0.0
     end
 
     if Boxed == false
         qEx2 = squaredNorm(kInL - kOutR)
-        weight.ex = 8.0 * pi / (qEx2 + Mass2 + Lambda)
+        weight[EX] = 8.0 * pi / (qEx2 + Mass2 + Lambda)
         if (DiagType == SIGMA && qEx2 < 1.0e-14) ||
            (DiagType == POLAR && abs(qEx2 - extQ^2) < 1.0e-14)
-            weight.ex = 0.0
+            weight[EX] = 0.0
         end
     else
-        weight.ex = 0.0
+        weight[EX] = 0.0
     end
     return weight
 end
 
 counterBubble(K::Mom) =
-    Lambda / (8.0 * pi * Kf) * green(Beta / 2.0, K) * green(-Beta / 2.0, K)
+    Lambda / (8.0 * pi * Nf) * green(Beta / 2.0, K) * green(-Beta / 2.0, K)
 
 angle(K1::Mom, K2::Mom) = dot(K1, K2) / norm(K1) / norm(K2)
 

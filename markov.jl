@@ -19,16 +19,21 @@ function init(_counter, _rng)
 
     global varT = rand(rng, LastTidx) * Beta
     varT[LastTidx] = Grid.tau.grid[currExtTidx]
+    varT[1] = 0.0
+    varT[2] = Beta / 2.0
 
     global varK = Vector{Mom}(undef, Order + 4)
     rand!(rng, varK)
     varK *= Kf
 
+    varK[5] = [0.0, Kf, Kf]
+
     if DiagType == GAMMA
         kL = [Kf, 0.0, 0.0]
+        varK[OUTL] = varK[INL] = kL[1:DIM]
         θ = acos(Grid.angle.grid[currExtAngidx])
         kR = [Kf * cos(θ), Kf * sin(θ), 0.0]
-        varK[INL], varK[OUTL] = (kL[1:DIM], kL[1:DIM], kR[1:DIM], kR[1:DIM])
+        varK[OUTR] = varK[INR] = kR[1:DIM]
     else
         k = [Grid.K.grid[currExtKidx], 0.0, 0.0]
         varK[1] = k[1:DIM]
@@ -44,6 +49,15 @@ function init(_counter, _rng)
         chan = [I, T, U, S, TC, UC]
         for order = 1:Order
             push!(vertex4, Vertex4.Ver4(0, order, chan, 1, RIGHT, false, true))
+        end
+
+        for order in 1:Order
+            @time begin
+                println("Order $order")
+                for i in 1:10000
+                    Vertex4.eval(vertex4[order], varK[INL], varK[OUTL], varK[INR], varK[OUTR], 5, true)
+                end
+            end
         end
         # Vertex4.visualize(vertex4[end])
     elseif DiagType == POLAR

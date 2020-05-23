@@ -12,7 +12,7 @@ function init(_varT::Vector{Float}, _varK::Vector{Mom})
     global varK = _varK
 end
 
-mutable struct Green
+struct Green
     K::Mom
     Tpair::Vector{Tuple{Int,Int}}
     weight::Vector{Float}
@@ -20,7 +20,7 @@ mutable struct Green
 end
 
 function eval(G::Green, K::Mom, IsAnomal = false)
-    G.K = K
+    G.K .= K
     for (i, t) in enumerate(G.Tpair)
         G.weight[i] = green(varT[t[OUT]] - varT[t[IN]], K)
     end
@@ -141,7 +141,7 @@ struct Ver4
         if loopNum <= 0
             # negative loopNum should never be used in evaluation
             addTidx(ver4, (tidx, tidx, tidx, tidx))
-            push!(ver4.weight, VerWeight())
+            push!(ver4.weight, zero(VerWeight))
             return ver4
         end
         UST = [c for c in chan if c != I]
@@ -155,8 +155,8 @@ struct Ver4
             end
         end
         Num = (isfast && lvl == 0) ? 4 : length(ver4.Tpair)
-        for t in 1:Num
-            push!(ver4.weight, VerWeight())
+        for t = 1:Num
+            push!(ver4.weight, zero(VerWeight))
         end
         for g in ver4.G
             for t in g.Tpair
@@ -178,8 +178,8 @@ function eval(
 )
     if ver4.loopNum == 0
         DiagType == POLAR ?
-        ver4.weight[0] = interaction(KinL, KoutL, KinR, KoutR, ver4.inBox, norm(varK[0])) :
-        ver4.weight[0] = interaction(KinL, KoutL, KinR, KoutR, ver4.inBox)
+        ver4.weight[1] = interaction(KinL, KoutL, KinR, KoutR, ver4.inBox, norm(varK[0])) :
+        ver4.weight[1] = interaction(KinL, KoutL, KinR, KoutR, ver4.inBox)
         return
     end
 
@@ -200,7 +200,7 @@ function eval(
         end
     end
 
-    w = VerWeight()
+    w = zero(VerWeight)
     gWeight, projfactor = (0.0, 0.0)
     for b in ver4.bubble
         c = b.chan
@@ -220,21 +220,21 @@ function eval(
 
 
         for map in b.map
-            gWeight = (c == TC || c == UC || ver4.inBox) ? counterBubble(K) :
+            gWeight = (c == TC || c == UC || ver4.inBox) ? counterBubble(G[1].K) :
                 G[1].weight[map.G] * G[c].weight[map.Gx]
 
             Lw, Rw = (b.Lver.weight[map.Lver], b.Rver.weight[map.Rver])
 
             if c == T || c == TC
-                w.dir = Lw.dir * Rw.dir * SPIN + Lw.dir * Rw.ex + Lw.ex * Rw.dir
-                w.ex = Lw.ex * Rw.ex
+                w[DIR] = Lw[DIR] * Rw[DIR] * SPIN + Lw[DIR] * Rw[EX] + Lw[EX] * Rw[DIR]
+                w[EX] = Lw[EX] * Rw[EX]
             elseif c == U || c == UC
-                w.dir = Lw.ex * Rw.ex
-                w.ex = Lw.dir * Rw.dir * SPIN + Lw.dir * Rw.ex + Lw.ex * Rw.dir
+                w[DIR] = Lw[EX] * Rw[EX]
+                w[EX] = Lw[DIR] * Rw[DIR] * SPIN + Lw[DIR] * Rw[EX] + Lw[EX] * Rw[DIR]
             else
                 # S channel,  see the note "code convention"
-                w.dir = Lw.dir * Rw.ex + Lw.ex * Rw.dir
-                w.ex = Lw.dir * Rw.dir + Lw.ex * Rw.ex
+                w[DIR] = Lw[DIR] * Rw[EX] + Lw[EX] * Rw[DIR]
+                w[EX] = Lw[DIR] * Rw[DIR] + Lw[EX] * Rw[EX]
             end
 
             weight = ver4.weight
@@ -243,11 +243,9 @@ function eval(
                 pair = ver4.Tpair[map.ver]
                 dT = varT[pair[INL]] - varT[pair[OUTL]] + varT[pair[INR]] - varT[pair[OUTR]]
                 gWeight *= projfactor * cos(2.0 * pi / Beta * dT)
-                weight[ChanMap[c]].dir += w.dir * gWeight 
-                weight[ChanMap[c]].ex += w.ex * gWeight
+                weight[ChanMap[c]] .+= w .* gWeight
             else
-                weight[map.ver].dir += w.dir * gWeight * projfactor
-                weight[map.ver].ex += w.ex * gWeight * projfactor
+                weight[map.ver] .+= w .* (gWeight * projfactor)
             end
         end
     end
