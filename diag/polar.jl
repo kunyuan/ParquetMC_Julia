@@ -68,7 +68,7 @@ function eval(polar::Polarization)
     w = 0.0
     weight = polar.ver4.weight
     for (i, gidx) in polar.Gidx
-        temp = (SPIN^2 * weight[i][DIR] + SPIN * weight[i][EX])
+        temp = (SPIN^2 * weight[i].dir + SPIN * weight[i].ex)
         for gidx in polar.Gidx
             temp *= G.weight[gidx]
         end

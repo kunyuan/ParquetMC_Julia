@@ -1,7 +1,7 @@
 const GAMMA, SIGMA, POLAR, DELTA = (1, 2, 3, 4)
 ################ Global parameters  ##################################
 
-const Order = 4
+const Order = 5
 const totalStep = 101
 const beta, Rs, Mass2, Lambda, maxK = (40.0, 1.0, 0.0, 1.0, 3.0)
 const ReWeight = [1.0, 3.0, 30.0, 1.0, 0.2, 0.1, 0.01]
@@ -9,7 +9,7 @@ const ReWeight = [1.0, 3.0, 30.0, 1.0, 0.2, 0.1, 0.01]
 const DiagType = GAMMA
 const DIM, SPIN = (3, 2)
 const (BoldG, BoldVer4) = (true, true)
-const TauGridSize, KGridSize, AngGridSize = (128, 32, 32)
+const TauGridSize, KGridSize, AngGridSize = (16, 8, 8)
 const PrintTime, SaveTime, ReWeightTime, MessageTime, CollectTime = (10, 10, 30, 10, 10)
 
 ############  Derived parameters ###################################
@@ -21,20 +21,26 @@ const Beta = beta / Ef # rescale the temperature
 const MaxK = maxK * Kf
 const TotalStep = totalStep * 1e6
 const PhaseFactor = 1.0 / (2.0 * pi)^DIM
-const LastTidx = 2 * Order
+const LastTidx = 2 * (Order + 2)
+const LastKidx = Order + 8
 
 ############ Global External Variable Grid #########################
 ########### Other constants  #####################################
 using StaticArrays
 const Float = Float64
 const Mom = MVector{3,Float}
-const VerWeight = MVector{2,Float}
+# const VerWeight = MVector{2,Float}
 const IN, OUT = (1, 2)
 const INL, OUTL, INR, OUTR = (1, 2, 3, 4)
 const DIR, EX = (1, 2)
 const DOWN, UP = (1, 2)
 const LEFT, RIGHT = (1, 2)
 const I, T, U, S, TC, UC = (1, 2, 3, 4, 5, 6)
+
+mutable struct VerWeight <: FieldVector{2,Float}
+    dir::Float
+    ex::Float
+end
 
 ########## Global function  #######################################
 
@@ -56,9 +62,9 @@ end
     end
 end
 
-squaredNorm(k) = DIM == 3 ? k[1]^2 + k[2]^2 + k[3]^2 : k[1]^2 + k[2]^2
-norm(k) = DIM == 3 ? sqrt(k[1]^2 + k[2]^2 + k[3]^2) : sqrt(k[1]^2 + k[2]^2)
-dot(k, q) = DIM == 3 ? k[1] * q[1] + k[2] * q[2] + k[3] * q[3] : k[1] * q[1] + k[2] * q[2]
+@inline squaredNorm(k) = DIM == 3 ? k[1]^2 + k[2]^2 + k[3]^2 : k[1]^2 + k[2]^2
+# @inline norm(k) = DIM == 3 ? sqrt(k[1]^2 + k[2]^2 + k[3]^2) : sqrt(k[1]^2 + k[2]^2)
+@inline dot(k, q) = DIM == 3 ? k[1] * q[1] + k[2] * q[2] + k[3] * q[3] : k[1] * q[1] + k[2] * q[2]
 
 # module Weight
 # mutable struct VerWeight

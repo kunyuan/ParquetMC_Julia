@@ -7,22 +7,20 @@ using D3Trees
 const ChanMap = [I, T, U, S, T, U]
 const SymFactor = [1.0, -1.0, 1.0, -0.5, 1.0, -1.0]
 
-function init(_varT::Vector{Float}, _varK::Vector{Mom})
-    global varT = _varT
-    global varK = _varK
-end
+# function init(_varT::Vector{Float}, _varK::Vector{Mom})
+#     global varT = _varT
+#     global varK = _varK
+# end
 
 struct Green
-    K::Mom
     Tpair::Vector{Tuple{Int,Int}}
     weight::Vector{Float}
-    Green() = new(zero(Mom), [], [])
+    Green() = new([], [])
 end
 
-function eval(G::Green, K::Mom, IsAnomal = false)
-    G.K .= K
+function eval(G::Green, K::Mom, _varT, IsAnomal = false)
     for (i, t) in enumerate(G.Tpair)
-        G.weight[i] = green(varT[t[OUT]] - varT[t[IN]], K)
+        G.weight[i] = green(_varT[t[OUT]] - _varT[t[IN]], K)
     end
 end
 
@@ -125,19 +123,21 @@ end
 struct Ver4
     level::Int
     loopNum::Int
-    chan::Vector{Int} # list of channels
+    chan::Set{Int} # list of channels
     Tidx::Int # inital Tidx
     side::Int # right side vertex is always a full gamma4
     inBox::Bool
 
-    G::Vector{Green}
+    K::MVector{3,Mom}
+    G::MVector{6,Green}
     Tpair::Vector{Tuple{Int,Int,Int,Int}}
     weight::Vector{VerWeight}
     bubble::Vector{Bubble{Ver4}}
 
     function Ver4(lvl, loopNum, chan, tidx, side, inbox, isfast = false)
-        g = [Green() for i = 1:6]
-        ver4 = new(lvl, loopNum, chan, tidx, side, inbox, g, [], [], [])
+        g = @MVector [Green() for i = 1:6]
+        k = @MVector [zero(Mom) for i = 1:3]
+        ver4 = new(lvl, loopNum, Set(chan), tidx, side, inbox, k, g,  [], [], [])
         if loopNum <= 0
             # negative loopNum should never be used in evaluation
             addTidx(ver4, (tidx, tidx, tidx, tidx))
@@ -146,7 +146,7 @@ struct Ver4
         end
         UST = [c for c in chan if c != I]
         II = [c for c in chan if c == I]
-        for c in UST
+        for c in UST 
             for ol = 0:loopNum - 1
                 bubble = Bubble{Ver4}(ver4, c, ol)
                 if length(bubble.map) > 0
@@ -174,6 +174,8 @@ function eval(
     KinR::Mom,
     KoutR::Mom,
     Kidx::Int,
+    varT,
+    varK,
     fast = false,
 )
     if ver4.loopNum == 0
@@ -186,68 +188,91 @@ function eval(
     # LoopNum>=1
     ver4.weight .*= 0.0 # initialize all weights
     G = ver4.G
-    eval(G[1], varK[Kidx])
+    K, Kt, Ku, Ks = (varK[Kidx], ver4.K[1], ver4.K[2], ver4.K[3])
+    eval(G[1], K, varT)
+    bubWeight = counterBubble(K)
 
     for c in ver4.chan
         if c == T || c == TC
-            ver4.inBox == false && eval(G[T], KoutL + G[1].K - KinL)
+            Kt .= KoutL .+ K .- KinL
+            if (!ver4.inBox)
+                eval(G[T], Kt, varT)
+            end
         elseif c == U || c == UC
             # can not be in box!
-            eval(G[U], KoutR + G[1].K - KinL)
+            Ku .= KoutR .+ K .- KinL
+            eval(G[U], Ku, varT)
         else
             # S channel, and cann't be in box!
-            eval(G[S], KinL + KinR - G[1].K)
+            Ks .= KinL .+ KinR .- K
+            eval(G[S], Ks, varT)
         end
     end
 
-    w = zero(VerWeight)
-    gWeight, projfactor = (0.0, 0.0)
+    # w = zero(VerWeight)
+    # gWeight, projfactor = (0.0, 0.0)
     for b in ver4.bubble
         c = b.chan
-        projfactor = SymFactor[c] * PhaseFactor
+        Factor = SymFactor[c] * PhaseFactor
 
         if c == T || c == TC
-            eval(b.Lver, KinL, KoutL, G[T].K, G[1].K, Kidx + 1)
-            eval(b.Rver, G[1].K, G[T].K, KinR, KoutR, Kidx + 1)
+            eval(b.Lver, KinL, KoutL, Kt, K, Kidx + 1, varT, varK)
+            eval(b.Rver, K, Kt, KinR, KoutR, Kidx + 1, varT, varK)
         elseif c == U || c == UC
-            eval(b.Lver, KinL, KoutR, G[U].K, G[1].K, Kidx + 1)
-            eval(b.Rver, G[1].K, G[U].K, KinR, KoutL, Kidx + 1)
+            eval(b.Lver, KinL, KoutR, Ku, K, Kidx + 1, varT, varK)
+            eval(b.Rver, K, Ku, KinR, KoutL, Kidx + 1, varT, varK)
         else
             # S channel
-            eval(b.Lver, KinL, G[S].K, KinR, G[1].K, Kidx + 1)
-            eval(b.Rver, G[1].K, KoutL, G[S].K, KoutR, Kidx + 1)
+            eval(b.Lver, KinL, Ks, KinR, K, Kidx + 1, varT, varK)
+            eval(b.Rver, K, KoutL, Ks, KoutR, Kidx + 1, varT, varK)
         end
 
-
+        # w = VerWeight(0.0, 0.0)
         for map in b.map
-            gWeight = (c == TC || c == UC || ver4.inBox) ? counterBubble(G[1].K) :
-                G[1].weight[map.G] * G[c].weight[map.Gx]
+            gWeight = (c == TC || c == UC || ver4.inBox) ? bubWeight * Factor :
+                G[1].weight[map.G] * G[c].weight[map.Gx] * Factor
 
             Lw, Rw = (b.Lver.weight[map.Lver], b.Rver.weight[map.Rver])
 
-            if c == T || c == TC
-                w[DIR] = Lw[DIR] * Rw[DIR] * SPIN + Lw[DIR] * Rw[EX] + Lw[EX] * Rw[DIR]
-                w[EX] = Lw[EX] * Rw[EX]
-            elseif c == U || c == UC
-                w[DIR] = Lw[EX] * Rw[EX]
-                w[EX] = Lw[DIR] * Rw[DIR] * SPIN + Lw[DIR] * Rw[EX] + Lw[EX] * Rw[DIR]
-            else
-                # S channel,  see the note "code convention"
-                w[DIR] = Lw[DIR] * Rw[EX] + Lw[EX] * Rw[DIR]
-                w[EX] = Lw[DIR] * Rw[DIR] + Lw[EX] * Rw[EX]
-            end
-
-            weight = ver4.weight
+            # println("g: ", G[1].weight[map.G], ", ", G[c].weight[map.Gx])
+            # println("order ", ver4.loopNum, ", c=$c, ", gWeight, ", ", Lw, ", ", Rw)
 
             if fast && ver4.level == 0
                 pair = ver4.Tpair[map.ver]
                 dT = varT[pair[INL]] - varT[pair[OUTL]] + varT[pair[INR]] - varT[pair[OUTR]]
-                gWeight *= projfactor * cos(2.0 * pi / Beta * dT)
-                weight[ChanMap[c]] .+= w .* gWeight
+                gWeight *= cos(2.0 * pi / Beta * dT)
+                w = ver4.weight[ChanMap[c]]
             else
-                weight[map.ver] .+= w .* (gWeight * projfactor)
+                w = ver4.weight[map.ver]
             end
+
+            if c == T || c == TC
+                w.dir += gWeight * (Lw.dir * Rw.dir * SPIN + Lw.dir * Rw.ex + Lw.ex * Rw.dir)
+                w.ex += gWeight * Lw.ex * Rw.ex
+            elseif c == U || c == UC
+                w.dir += gWeight * Lw.ex * Rw.ex
+                w.ex += gWeight * (Lw.dir * Rw.dir * SPIN + Lw.dir * Rw.ex + Lw.ex * Rw.dir)
+            else
+                # S channel,  see the note "code convention"
+                w.dir += gWeight * (Lw.dir * Rw.ex + Lw.ex * Rw.dir)
+                w.ex += gWeight * (Lw.dir * Rw.dir + Lw.ex * Rw.ex)
+            end
+
+            # w *= gWeight
+
+            # weight=ver4.weight
+
+            # if fast && ver4.level == 0
+            #     pair = ver4.Tpair[map.ver]
+            #     dT = varT[pair[INL]] - varT[pair[OUTL]] + varT[pair[INR]] - varT[pair[OUTR]]
+            #     gWeight *= cos(2.0 * pi / Beta * dT)
+            #     ver4.weight[ChanMap[c]].dir += w.dir * gWeight
+            #     ver4.weight[ChanMap[c]].ex += w.ex * gWeight
+            # else
+            #     ver4.weight[map.ver] += w * gWeight
+            # end
         end
+
     end
 end
 
@@ -280,9 +305,9 @@ function _expandVer4(children, text, style, ver4::Ver4, parent)
     # println("Ver4: $(ver4.level), Bubble: $(length(ver4.bubble))")
     if ver4.loopNum > 0
         info = "O$(ver4.loopNum)\nT[$(length(ver4.Tpair))]\n"
-        # for t in ver4.Tpair
-        #     info *= "[$(t[1]) $(t[2]) $(t[3]) $(t[4])]\n"
-        # end
+        for t in ver4.Tpair
+            info *= "[$(t[1]) $(t[2]) $(t[3]) $(t[4])]\n"
+        end
     else
         info = "O$(ver4.loopNum)"
     end
@@ -319,6 +344,6 @@ function visualize(ver4::Ver4)
     D3Trees.inchrome(t)
 end
 
-export init, eval, Ver4, Bubble, visualize, addTidx
+export init, Ver4, Bubble, visualize, addTidx
 
 end

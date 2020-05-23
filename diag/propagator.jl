@@ -1,7 +1,7 @@
 module Propagator
 include("../parameter.jl")
 
-function green(tau::Real, k::Mom, gtype::Int = 0, scale::Real = 0.0)
+@inline function green(tau::Float, k::Mom, gtype::Int = 0, scale::Float = 0.0)
     if gtype == 1 || tau == 0.0
         tau = -1.0e-12
     end
@@ -38,23 +38,23 @@ function interaction(
     Boxed::Bool,
     extQ::Real = -1.0,
 )
-    weight = zero(VerWeight)
+    weight = VerWeight(0.0, 0.0)
     qDi2 = squaredNorm(kInL - kOutL)
-    weight[DIR] = -8.0 * pi / (qDi2 + Mass2 + Lambda)
+    weight.dir = -8.0 * pi / (qDi2 + Mass2 + Lambda)
     if (DiagType == SIGMA && qDi2 < 1.0e-14) ||
        (DiagType == POLAR && abs(qDi2 - extQ^2) < 1.0e-14)
-        weight[DIR] = 0.0
+        weight.dir = 0.0
     end
 
     if Boxed == false
         qEx2 = squaredNorm(kInL - kOutR)
-        weight[EX] = 8.0 * pi / (qEx2 + Mass2 + Lambda)
+        weight.ex = 8.0 * pi / (qEx2 + Mass2 + Lambda)
         if (DiagType == SIGMA && qEx2 < 1.0e-14) ||
            (DiagType == POLAR && abs(qEx2 - extQ^2) < 1.0e-14)
-            weight[EX] = 0.0
+            weight.ex = 0.0
         end
     else
-        weight[EX] = 0.0
+        weight.ex = 0.0
     end
     return weight
 end

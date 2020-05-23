@@ -5,17 +5,17 @@ include("vertex4.jl")
 using .Vertex4
 using .Propagator: interaction, green
 
-function init(_varT::Vector{Float}, _varK::Vector{Mom})
-    global varT = _varT
-    global varK = _varK
-    Vertex4.init(varT, varK)
-end
+# function init(_varT::Vector{Float}, _varK::Vector{Mom})
+#     global varT = _varT
+#     global varK = _varK
+#     Vertex4.init(varT, varK)
+# end
 
-function evalOneLoopVer4(chan)
+function evalOneLoopVer4(chan, varT, varK)
     weight = zero(VerWeight)
 
     ver4 = Vertex4.Ver4(0, 1, chan, 1, RIGHT, false, true)
-    Vertex4.eval(ver4, varK[INL], varK[OUTL], varK[INR], varK[OUTR], 5, true)
+    Vertex4.eval(ver4, varK[INL], varK[OUTL], varK[INR], varK[OUTR], 5, varT, varK, true)
     weight = sum(ver4.weight)
     # for w in ver4.weight
     #     weight .+= w
@@ -23,7 +23,7 @@ function evalOneLoopVer4(chan)
     return weight
 end
 
-function testOneLoopVer4()
+function testOneLoopVer4(varT, varK)
     println("Testing ...")
     inL, outL, inR, outR = (varK[INL], varK[OUTL], varK[INR], varK[OUTR])
     K = varK[5]
@@ -41,20 +41,20 @@ function testOneLoopVer4()
     gweightbox = green(dTau, K) * green(-dTau, K)
 
     weight = zero(VerWeight)
-    weight[DIR] =
-        Lver[DIR] * Rver[DIR] * SPIN + Lver[EX] * Rver[DIR] + Lver[DIR] * Rver[EX]
-    weight[EX] = Lver[EX] * Rver[EX]
+    weight.dir =
+        Lver.dir * Rver.dir * SPIN + Lver.ex * Rver.dir + Lver.dir * Rver.ex
+    weight.ex = Lver.ex * Rver.ex
     weight .*= gweight * PhaseFactor * Vertex4.SymFactor[T]
 
     cweight = zero(VerWeight)
-    cweight[DIR] = gweightbox * Lver[DIR] * Rver[DIR] * Lambda / (8.0 * pi) / Nf * SPIN
+    cweight.dir = gweightbox * Lver.dir * Rver.dir * Lambda / (8.0 * pi) / Nf * SPIN
     cweight .*= PhaseFactor * Vertex4.SymFactor[T]
     testWeight = weight - cweight
 
-    refweight = evalOneLoopVer4([T, TC])
+    refweight = evalOneLoopVer4([T, TC], varT, varK)
 
-    if abs(testWeight[DIR] - refweight[DIR]) > 1.0e-10 || 
-       abs(testWeight[EX] - refweight[EX]) > 1.0e-10
+    if abs(testWeight.dir - refweight.dir) > 1.0e-16 || 
+       abs(testWeight.ex - refweight.ex) > 1.0e-16
         printstyled(
                 "$testWeight != $refweight\n",
                 color = :red,
@@ -73,20 +73,20 @@ function testOneLoopVer4()
     gweight = green(dTau, K) * green(-dTau, Ku)
     gweightbox = green(dTau, K) * green(-dTau, K)
 
-    weight[DIR] = Lver[EX] * Rver[EX]
-    weight[EX] =
-        Lver[DIR] * Rver[DIR] * SPIN + Lver[EX] * Rver[DIR] + Lver[DIR] * Rver[EX]
+    weight.dir = Lver.ex * Rver.ex
+    weight.ex =
+        Lver.dir * Rver.dir * SPIN + Lver.ex * Rver.dir + Lver.dir * Rver.ex
     weight .*= gweight * PhaseFactor * Vertex4.SymFactor[U]
 
     cweight = zero(VerWeight)
-    cweight[EX] = gweightbox * Lver[DIR] * Rver[DIR] * Lambda / (8.0 * pi) / Nf * SPIN
+    cweight.ex = gweightbox * Lver.dir * Rver.dir * Lambda / (8.0 * pi) / Nf * SPIN
     cweight .*= PhaseFactor * Vertex4.SymFactor[U]
     testWeight = weight - cweight
 
-    refweight = evalOneLoopVer4([U, UC])
+    refweight = evalOneLoopVer4([U, UC], varT, varK)
 
-    if abs(testWeight[DIR] - refweight[DIR]) > 1.0e-10 || 
-       abs(testWeight[EX] - refweight[EX]) > 1.0e-10
+    if abs(testWeight.dir - refweight.dir) > 1.0e-16 || 
+       abs(testWeight.ex - refweight.ex) > 1.0e-16
         printstyled(
                     "$testWeight != $refweight\n",
                     color = :red,
@@ -102,16 +102,16 @@ function testOneLoopVer4()
     dTau = varT[2] - varT[1]
     gweight = green(dTau, K) * green(dTau, Ks)
 
-    weight[DIR] = Lver[EX] * Rver[DIR] + Lver[DIR] * Rver[EX]
-    weight[EX] = Lver[DIR] * Rver[DIR] + Lver[EX] * Rver[EX]
+    weight.dir = Lver.ex * Rver.dir + Lver.dir * Rver.ex
+    weight.ex = Lver.dir * Rver.dir + Lver.ex * Rver.ex
 
     weight *= gweight * PhaseFactor * Vertex4.SymFactor[S]
     weight *= cos(2.0 * pi / Beta * dTau * 2.0)
 
-    refweight = evalOneLoopVer4([S,])
+    refweight = evalOneLoopVer4([S,], varT, varK)
 
-    if abs(weight[DIR] - refweight[DIR]) > 1.0e-10 || 
-       abs(weight[EX] - refweight[EX]) > 1.0e-10
+    if abs(weight.dir - refweight.dir) > 1.0e-16 || 
+       abs(weight.ex - refweight.ex) > 1.0e-16
         printstyled(
                     "$weight != $refweight\n",
                     color = :red,

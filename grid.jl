@@ -72,13 +72,13 @@ struct UniformGrid
 end
 
 # cos(theta) grids
-angle = Grid.UniformGrid(-1.0, 1.0, AngGridSize)
+const angle = Grid.UniformGrid(-1.0, 1.0, AngGridSize)
 
 # Tau Grid construction
 lambda = Beta / Ef / TauGridSize / 3.0
 c1 = Grid.Coeff([0.0, Beta / 2.0], [1.0, TauGridSize / 2 + 0.5], lambda, true)
 c2 = Grid.Coeff([Beta / 2.0, Beta], [TauGridSize / 2 - 0.5, TauGridSize], lambda, false)
-tau = Grid.LogGrid([c1, c2], [Int(TauGridSize / 2) + 1, TauGridSize])
+const tau = Grid.LogGrid([c1, c2], [Int(TauGridSize / 2) + 1, TauGridSize])
 tau.grid[1], tau.grid[end] = (1.0e-8, Beta - 1.0e-8)
 
 # MomGrid construction
@@ -89,7 +89,7 @@ if DiagType == SIGMA
     lambda = sqrt(Ef * Beta) / kFi
     c1 = Grid.Coeff([0.0, Kf], [1.0, kFi + 1.0], lambda, false)
     c2 = Grid.Coeff([Kf, MaxK], [kFi, KGridSize], lambda, true)
-    K = Grid.LogGrid([c1, c2], [kFi, KGridSize])
+    const K = Grid.LogGrid([c1, c2], [kFi, KGridSize])
     K.grid[1] = 1.0e-6
 else
     # Bosonic Grid
@@ -99,7 +99,7 @@ else
     c1 = Grid.Coeff([0.0, Kf], [1.0, kFi + 1.0], lambda, true)
     c2 = Grid.Coeff([Kf, 2.0 * Kf], [kFi, twokFi + 1.0], lambda, false)
     c3 = Grid.Coeff([2.0 * Kf, MaxK], [twokFi, KGridSize], lambda, true)
-    K = Grid.LogGrid([c1, c2, c3], [kFi, twokFi, KGridSize])
+    const K = Grid.LogGrid([c1, c2, c3], [kFi, twokFi, KGridSize])
     K.grid[1] = 1.0e-6
 end
 
