@@ -3,11 +3,11 @@ using StaticArrays
 include("parameter.jl")
 
 struct Coeff
-    bound::SVector{2,Real}
-    idx::SVector{2,Real}
-    lambda::Real
-    a::Real
-    b::Real
+    bound::SVector{2,Float}
+    idx::SVector{2,Float}
+    lambda::Float
+    a::Float
+    b::Float
 
     function Coeff(b, i, l, dense2sparse)
         bound = b
@@ -26,26 +26,26 @@ struct Coeff
     end
 end
 
-function _floor(l::Coeff, x::Real)::Int
+function _floor(l::Coeff, x::Float)::Int
     # @tmpassert(bound[0] <= x <= bound[1])
     pos = l.idx[1] + 1.0 / l.lambda * log((x - l.a) / l.b)
     return Base.floor(Int, pos)
 end
 
-function _grid(l::Coeff, idx::Int)::Real
-    return l.a + l.b * exp(l.lambda * (Real(idx) - l.idx[1]))
+function _grid(l::Coeff, idx::Int)::Float
+    return l.a + l.b * exp(l.lambda * (Float(idx) - l.idx[1]))
 end
 
 struct LogGrid
     size::Int
-    grid::Array{Real,1}
+    grid::Array{Float,1}
     segmentEnds::Array{Int,1} # ends of each segments
     coeff::Array{Coeff,1}
 
     function LogGrid(coeff::Array{Coeff,1}, segmentEnds::Array{Int,1})
         @assert length(segmentEnds) == length(coeff) "Number of coeff and segments don't match!"
         size = segmentEnds[end]
-        grid = zeros(Real, size)
+        grid = zeros(Float, size)
         # println("length= $(length(grid))")
         start = 1
         for (i, seg) in enumerate(segmentEnds)
@@ -62,9 +62,9 @@ end
 
 struct UniformGrid
     size::Int
-    grid::Array{Real,1}
+    grid::Array{Float,1}
 
-    function UniformGrid(head::Real, tail::Real, size::Int)
+    function UniformGrid(head::Float, tail::Float, size::Int)
         @assert size > 1 "Size must be large than 1"
         grid = LinRange(head, tail, size)
         return new(size, grid)

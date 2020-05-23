@@ -30,7 +30,7 @@ function interaction(mom::Mom, verOrder::Int = 0)
     return weight
 end
 
-function interaction(kInL::Mom, kOutL::Mom, kInR::Mom, kOutR::Mom, Boxed::Bool, extQ::Real)
+function interaction(kInL::Mom, kOutL::Mom, kInR::Mom, kOutR::Mom, Boxed::Bool, extQ::Real = -1.0)
     weight = VerWeight()
     qDi2 = squaredNorm(kInL - kOutL)
     weight.dir = -8.0 * pi / (qDi2 + Mass2 + Lambda)
@@ -49,7 +49,7 @@ function interaction(kInL::Mom, kOutL::Mom, kInR::Mom, kOutR::Mom, Boxed::Bool, 
     else
         weight.ex = 0.0
     end
-
+    return weight
 end
 
 counterBubble(K::Mom) =
