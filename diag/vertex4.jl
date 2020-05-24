@@ -19,14 +19,14 @@ function eval(G::Green, K::Mom, _varT, IsAnomal = false)
     end
 end
 
-function addTidx(_obj, _Tidx)
-    for (i, Tidx) in enumerate(_obj.Tpair)
+function addTidx(obj, _Tidx)
+    for (i, Tidx) in enumerate(obj.Tpair)
         if Tidx == _Tidx
             return i
         end
     end
-    push!(_obj.Tpair, _Tidx)
-    return length(_obj.Tpair)
+    push!(obj.Tpair, _Tidx)
+    return length(obj.Tpair)
 end
 
 struct IdxMap
@@ -84,30 +84,33 @@ struct Bubble{_Ver4} # template Bubble to avoid mutually recursive struct
 
         ############## construct IdxMap ########################################
         map = []
+        G = ver4.G
         for (lt, LvT) in enumerate(Lver.Tpair)
             for (rt, RvT) in enumerate(Rver.Tpair)
-                GTidx = addTidx(ver4.G[1], (LvT[OUTR], RvT[INL]))
+                GT0idx = addTidx(G[1], (LvT[OUTR], RvT[INL]))
                 GTxidx, VerTidx = (0, 0)
 
                 if chan == T
                     VerTidx = addTidx(ver4, (LvT[INL], LvT[OUTL], RvT[INR], RvT[OUTR]))
-                    GTxidx = addTidx(ver4.G[chan], (RvT[OUTL], LvT[INR]))
+                    GTxidx = addTidx(G[T], (RvT[OUTL], LvT[INR]))
                 elseif chan == U
                     VerTidx = addTidx(ver4, (LvT[INL], RvT[OUTR], RvT[INR], LvT[OUTL]))
-                    GTxidx = addTidx(ver4.G[chan], (RvT[OUTL], LvT[INR]))
+                    GTxidx = addTidx(G[U], (RvT[OUTL], LvT[INR]))
                 elseif chan == S
                     VerTidx = addTidx(ver4, (LvT[INL], RvT[OUTL], LvT[INR], RvT[OUTR]))
-                    GTxidx = addTidx(ver4.G[chan], (LvT[OUTL], RvT[INR]))
+                    GTxidx = addTidx(G[S], (LvT[OUTL], RvT[INR]))
                 elseif chan == TC || chan == UC
                     # counterterms are equal-time
                     VerTidx = addTidx(ver4, (LvT[INL], LvT[INL], LvT[INL], LvT[INL]))
                     GTxidx = -1 # do not need it
-                    # GTxidx = addTidx(ver4.G[chan], (RvT[OUTL], LvT[INR]))
+                # GTxidx = addTidx(ver4.G[chan], (RvT[OUTL], LvT[INR]))
+                else
+                    throw("This channel is invalid!")
                 end
 
                 @assert ver4.Tpair[end][1] == ver4.Tidx "InL Tidx must be the same for all Tpairs in the vertex4"
-                @assert GTidx != 0 && VerTidx != 0 "index cann't be zero!"
-                push!(map, IdxMap(GTidx, GTxidx, VerTidx))
+                @assert GT0idx != 0 && VerTidx != 0 "index cann't be zero!"
+                push!(map, IdxMap(GT0idx, GTxidx, VerTidx))
             end
         end
         return new(chan, Lver, Rver, map)
@@ -131,7 +134,7 @@ struct Ver4
     function Ver4(lvl, loopNum, chan, tidx, side, inbox, isfast = false)
         g = @MVector [Green() for i = 1:4]
         k = @MVector [zero(Mom) for i = 1:3]
-        ver4 = new(lvl, loopNum, Set(chan), tidx, side, inbox, k, g,  [], [], [])
+        ver4 = new(lvl, loopNum, Set(chan), tidx, side, inbox, k, g, [], [], [])
         if loopNum <= 0
             # negative loopNum should never be used in evaluation
             addTidx(ver4, (tidx, tidx, tidx, tidx))
@@ -140,7 +143,7 @@ struct Ver4
         end
         UST = [c for c in chan if c != I]
         II = [c for c in chan if c == I]
-        for c in UST 
+        for c in UST
             for ol = 0:loopNum - 1
                 bubble = Bubble{Ver4}(ver4, c, ol)
                 if length(bubble.map) > 0
@@ -161,20 +164,10 @@ struct Ver4
     end
 end
 
-function eval(
-    ver4::Ver4,
-    KinL::Mom,
-    KoutL::Mom,
-    KinR::Mom,
-    KoutR::Mom,
-    Kidx::Int,
-    varT,
-    varK,
-    fast = false,
-)
+function eval(ver4::Ver4, KinL, KoutL, KinR, KoutR, Kidx::Int, var, fast = false)
     if ver4.loopNum == 0
         DiagType == POLAR ?
-        ver4.weight[1] = interaction(KinL, KoutL, KinR, KoutR, ver4.inBox, norm(varK[0])) :
+        ver4.weight[1] = interaction(KinL, KoutL, KinR, KoutR, ver4.inBox, norm(var.K[0])) :
         ver4.weight[1] = interaction(KinL, KoutL, KinR, KoutR, ver4.inBox)
         return
     end
@@ -182,43 +175,41 @@ function eval(
     # LoopNum>=1
     ver4.weight .*= 0.0 # initialize all weights
     G = ver4.G
-    K, Kt, Ku, Ks = (varK[Kidx], ver4.K[1], ver4.K[2], ver4.K[3])
-    eval(G[1], K, varT)
+    K, Kt, Ku, Ks = (var.K[Kidx], ver4.K[1], ver4.K[2], ver4.K[3])
+    eval(G[1], K, var.T)
     bubWeight = counterBubble(K)
 
     for c in ver4.chan
         if c == T || c == TC
             Kt .= KoutL .+ K .- KinL
             if (!ver4.inBox)
-                eval(G[T], Kt, varT)
+                eval(G[T], Kt, var.T)
             end
         elseif c == U || c == UC
             # can not be in box!
             Ku .= KoutR .+ K .- KinL
-            eval(G[U], Ku, varT)
+            eval(G[U], Ku, var.T)
         else
             # S channel, and cann't be in box!
             Ks .= KinL .+ KinR .- K
-            eval(G[S], Ks, varT)
+            eval(G[S], Ks, var.T)
         end
     end
 
-    # w = zero(VerWeight)
-    # gWeight, projfactor = (0.0, 0.0)
     for b in ver4.bubble
         c = b.chan
         Factor = SymFactor[c] * PhaseFactor
 
         if c == T || c == TC
-            eval(b.Lver, KinL, KoutL, Kt, K, Kidx + 1, varT, varK)
-            eval(b.Rver, K, Kt, KinR, KoutR, Kidx + 1, varT, varK)
+            eval(b.Lver, KinL, KoutL, Kt, K, Kidx + 1, var)
+            eval(b.Rver, K, Kt, KinR, KoutR, Kidx + 1, var)
         elseif c == U || c == UC
-            eval(b.Lver, KinL, KoutR, Ku, K, Kidx + 1, varT, varK)
-            eval(b.Rver, K, Ku, KinR, KoutL, Kidx + 1, varT, varK)
+            eval(b.Lver, KinL, KoutR, Ku, K, Kidx + 1, var)
+            eval(b.Rver, K, Ku, KinR, KoutL, Kidx + 1, var)
         else
             # S channel
-            eval(b.Lver, KinL, Ks, KinR, K, Kidx + 1, varT, varK)
-            eval(b.Rver, K, KoutL, Ks, KoutR, Kidx + 1, varT, varK)
+            eval(b.Lver, KinL, Ks, KinR, K, Kidx + 1, var)
+            eval(b.Rver, K, KoutL, Ks, KoutR, Kidx + 1, var)
         end
 
         rN = length(b.Rver.weight)
@@ -231,12 +222,12 @@ function eval(
                 else
                     gWeight = G[1].weight[map.G] * G[c].weight[map.Gx] * Factor
                 end
-            # println("g: ", G[1].weight[map.G], ", ", G[c].weight[map.Gx])
-            # println("order ", ver4.loopNum, ", c=$c, ", gWeight, ", ", Lw, ", ", Rw)
 
                 if fast && ver4.level == 0
                     pair = ver4.Tpair[map.ver]
-                    dT = varT[pair[INL]] - varT[pair[OUTL]] + varT[pair[INR]] - varT[pair[OUTR]]
+                    dT =
+                        var.T[pair[INL]] - var.T[pair[OUTL]] + var.T[pair[INR]] -
+                        var.T[pair[OUTR]]
                     gWeight *= cos(2.0 * pi / Beta * dT)
                     w = ver4.weight[ChanMap[c]]
                 else
@@ -244,13 +235,15 @@ function eval(
                 end
 
                 if c == T || c == TC
-                    w.dir += gWeight * (Lw.dir * Rw.dir * SPIN + Lw.dir * Rw.ex + Lw.ex * Rw.dir)
+                    w.dir +=
+                        gWeight * (Lw.dir * Rw.dir * SPIN + Lw.dir * Rw.ex + Lw.ex * Rw.dir)
                     w.ex += gWeight * Lw.ex * Rw.ex
                 elseif c == U || c == UC
                     w.dir += gWeight * Lw.ex * Rw.ex
-                    w.ex += gWeight * (Lw.dir * Rw.dir * SPIN + Lw.dir * Rw.ex + Lw.ex * Rw.dir)
+                    w.ex +=
+                        gWeight * (Lw.dir * Rw.dir * SPIN + Lw.dir * Rw.ex + Lw.ex * Rw.dir)
                 else
-                # S channel,  see the note "code convention"
+                    # S channel,  see the note "code convention"
                     w.dir += gWeight * (Lw.dir * Rw.ex + Lw.ex * Rw.dir)
                     w.ex += gWeight * (Lw.dir * Rw.dir + Lw.ex * Rw.ex)
                 end
@@ -260,21 +253,6 @@ function eval(
 
     end
 end
-
-# struct Ver4Tree
-#     ver4pool::Vector{Ver4} # the first element is the root
-#     Tpair::Vector{Tuple{Int,Int,Int,Int}} # the Tpair list of the Root vertex4
-# end
-
-# const Root = Vector{Ver4Tree}(undef, 0)
-
-# function init(orderList)
-#     resize!(Root, 0)
-#     for order in orderList
-
-#     end
-# end
-
 
 function _expandBubble(children, text, style, bub::Bubble, parent)
     push!(children, zeros(Int, 0))
@@ -344,6 +322,6 @@ function visualize(ver4::Ver4)
     D3Trees.inchrome(t)
 end
 
-export init, Ver4, Bubble, visualize, addTidx
+export Ver4, Bubble, visualize
 
 end
