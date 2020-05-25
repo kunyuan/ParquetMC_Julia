@@ -2,21 +2,18 @@ module Markov
 include("parameter.jl")
 include("grid.jl")
 include("diag/vertex4.jl")
-include("diag/polar.jl")
-include("diag/vertex4_test.jl")
+# include("diag/polar.jl")
+# include("diag/vertex4_test.jl")
 using Random, StaticArrays
-import .Vertex4, .Ver4Test, .Polar
+# import .Vertex4, .Ver4Test, .Polar
 const UpdateNum = 9
 
-# const curr = Main.State()
-# const varT = Vector{Float}(undef, LastTidx)
-# const varK = Vector{Mom}(undef, LastKidx)
 const curr = Main.Curr
 const rng = Main.Curr.rng
 const varK = Main.Curr.K
 const varT = Main.Curr.T
 
-const ver4 = Vector{Vertex4.Ver4}(undef, 0)
+# const ver4 = Vector{Vertex4.Ver4}(undef, 0)
 
 # function init(_counter, _rng)
 function init()
@@ -26,18 +23,21 @@ function init()
     ###### initialized diagram trees #######################################
 
     if DiagType == GAMMA
-        chan = [I, T, U, S, TC, UC]
+        chan = Set([T, U, S, TC, UC])
+        legK = [varK[INL], varK[OUTL], varK[INR], varK[OUTR]]
         for order = 1:Order
-            push!(ver4, Vertex4.Ver4(0, order, chan, 1, RIGHT, false, true))
+            # println("Build vertex")
+            Vertex4.verTree(0, order, chan, legK, varK[5], 1, RIGHT, false)
+            # push!(ver4, Vertex4.Ver4(0, order, chan, 1, RIGHT, false, true))
             GC.gc() # collect garabage, reduce memory usage
         end
         # Vertex4.visualize(vertex4[2])
 
-    elseif DiagType == POLAR
-        global polar = Vector{Polar.Polarization}(undef, 0)
-        for o = 0:Order
-            push!(polar, Polar.Polarization(o))
-        end
+    # elseif DiagType == POLAR
+    #     global polar = Vector{Polar.Polarization}(undef, 0)
+    #     for o = 0:Order
+    #         push!(polar, Polar.Polarization(o))
+    #     end
     else
         throw("Not implemented!")
     end
@@ -50,7 +50,7 @@ function test()
 end
 
 function benchmark(o)
-        # @allocated begin
+    # @allocated begin
     if DiagType == GAMMA
         @fastmath Vertex4.eval(
             ver4[o],
