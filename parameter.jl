@@ -29,18 +29,18 @@ const LastKidx = Order + 8
 using StaticArrays
 const Float = Float64
 const Mom = MVector{3,Float}
-# const VerWeight = MVector{2,Float}
+const VerWeight = MVector{2,Float}
 const IN, OUT = (1, 2)
 const INL, OUTL, INR, OUTR = (1, 2, 3, 4)
-const DIR, EX = (1, 2)
+const DI, EX = (1, 2)
 const DOWN, UP = (1, 2)
 const LEFT, RIGHT = (1, 2)
 const I, T, U, S, TC, UC = (1, 2, 3, 4, 5, 6)
 
-mutable struct VerWeight <: FieldVector{2,Float}
-    dir::Float
-    ex::Float
-end
+# mutable struct VerWeight <: FieldVector{2,Float}
+#     dir::Float
+#     ex::Float
+# end
 
 ########## Global function  #######################################
 

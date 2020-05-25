@@ -235,17 +235,17 @@ function eval(ver4::Ver4, KinL, KoutL, KinR, KoutR, Kidx::Int, var, fast = false
                 end
 
                 if c == T || c == TC
-                    w.dir +=
-                        gWeight * (Lw.dir * Rw.dir * SPIN + Lw.dir * Rw.ex + Lw.ex * Rw.dir)
-                    w.ex += gWeight * Lw.ex * Rw.ex
+                    w[DI] +=
+                        gWeight * (Lw[DI] * Rw[DI] * SPIN + Lw[DI] * Rw[EX] + Lw[EX] * Rw[DI])
+                    w[EX] += gWeight * Lw[EX] * Rw[EX]
                 elseif c == U || c == UC
-                    w.dir += gWeight * Lw.ex * Rw.ex
-                    w.ex +=
-                        gWeight * (Lw.dir * Rw.dir * SPIN + Lw.dir * Rw.ex + Lw.ex * Rw.dir)
+                    w[DI] += gWeight * Lw[EX] * Rw[EX]
+                    w[EX] +=
+                        gWeight * (Lw[DI] * Rw[DI] * SPIN + Lw[DI] * Rw[EX] + Lw[EX] * Rw[DI])
                 else
                     # S channel,  see the note "code convention"
-                    w.dir += gWeight * (Lw.dir * Rw.ex + Lw.ex * Rw.dir)
-                    w.ex += gWeight * (Lw.dir * Rw.dir + Lw.ex * Rw.ex)
+                    w[DI] += gWeight * (Lw[DI] * Rw[EX] + Lw[EX] * Rw[DI])
+                    w[EX] += gWeight * (Lw[DI] * Rw[DI] + Lw[EX] * Rw[EX])
                 end
 
             end

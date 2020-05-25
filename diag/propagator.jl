@@ -40,21 +40,21 @@ function interaction(
 )
     weight = VerWeight(0.0, 0.0)
     qDi2 = squaredNorm(kInL - kOutL)
-    weight.dir = -8.0 * pi / (qDi2 + Mass2 + Lambda)
+    weight[DI] = -8.0 * pi / (qDi2 + Mass2 + Lambda)
     if (DiagType == SIGMA && qDi2 < 1.0e-14) ||
        (DiagType == POLAR && abs(qDi2 - extQ^2) < 1.0e-14)
-        weight.dir = 0.0
+        weight[DI] = 0.0
     end
 
     if Boxed == false
         qEx2 = squaredNorm(kInL - kOutR)
-        weight.ex = 8.0 * pi / (qEx2 + Mass2 + Lambda)
+        weight[EX] = 8.0 * pi / (qEx2 + Mass2 + Lambda)
         if (DiagType == SIGMA && qEx2 < 1.0e-14) ||
            (DiagType == POLAR && abs(qEx2 - extQ^2) < 1.0e-14)
             weight.ex = 0.0
         end
     else
-        weight.ex = 0.0
+        weight[EX] = 0.0
     end
     return weight
 end

@@ -36,24 +36,17 @@ function testOneLoopVer4(curr)
     gweightbox = green(dTau, K) * green(-dTau, K)
 
     weight = zero(VerWeight)
-    weight.dir = Lver.dir * Rver.dir * SPIN + Lver.ex * Rver.dir + Lver.dir * Rver.ex
-    weight.ex = Lver.ex * Rver.ex
+    weight[DI] = Lver[DI] * Rver[DI] * SPIN + Lver[EX] * Rver[DI] + Lver[DI] * Rver[EX]
+    weight[EX] = Lver[EX] * Rver[EX]
     weight .*= gweight * PhaseFactor * Vertex4.SymFactor[T]
 
     cweight = zero(VerWeight)
-    cweight.dir = gweightbox * Lver.dir * Rver.dir * Lambda / (8.0 * pi) / Nf * SPIN
+    cweight[DI] = gweightbox * Lver[DI] * Rver[DI] * Lambda / (8.0 * pi) / Nf * SPIN
     cweight .*= PhaseFactor * Vertex4.SymFactor[T]
     testWeight = weight - cweight
 
     refweight = evalOneLoopVer4([T, TC], curr)
-
-    if abs(testWeight.dir - refweight.dir) > 1.0e-16 ||
-       abs(testWeight.ex - refweight.ex) > 1.0e-16
-        printstyled("$testWeight != $refweight\n", color = :red)
-        println("GG: $gweight, GG_counter: $gweightbox")
-        println("Lver: $Lver")
-        println("Rver: $Rver")
-    end
+    @assert isapprox(testWeight, refweight, rtol = 1.0e-16) "\n$testWeight != $refweight\nGG: $gweight, GG_counter: $gweightbox\nLver: $Lver, Rver: $Rver"
 
     ### U and UC #####
     Ku = outR + K - inL
@@ -64,24 +57,17 @@ function testOneLoopVer4(curr)
     gweight = green(dTau, K) * green(-dTau, Ku)
     gweightbox = green(dTau, K) * green(-dTau, K)
 
-    weight.dir = Lver.ex * Rver.ex
-    weight.ex = Lver.dir * Rver.dir * SPIN + Lver.ex * Rver.dir + Lver.dir * Rver.ex
+    weight[DI] = Lver[EX] * Rver[EX]
+    weight[EX] = Lver[DI] * Rver[DI] * SPIN + Lver[EX] * Rver[DI] + Lver[DI] * Rver[EX]
     weight .*= gweight * PhaseFactor * Vertex4.SymFactor[U]
 
     cweight = zero(VerWeight)
-    cweight.ex = gweightbox * Lver.dir * Rver.dir * Lambda / (8.0 * pi) / Nf * SPIN
+    cweight[EX] = gweightbox * Lver[DI] * Rver[DI] * Lambda / (8.0 * pi) / Nf * SPIN
     cweight .*= PhaseFactor * Vertex4.SymFactor[U]
     testWeight = weight - cweight
 
     refweight = evalOneLoopVer4([U, UC], curr)
-
-    if abs(testWeight.dir - refweight.dir) > 1.0e-16 ||
-       abs(testWeight.ex - refweight.ex) > 1.0e-16
-        printstyled("$testWeight != $refweight\n", color = :red)
-        println("GG: $gweight, GG_counter: $gweightbox")
-        println("Lver: $Lver")
-        println("Rver: $Rver")
-    end
+    @assert isapprox(testWeight, refweight, rtol = 1.0e-16) "\n$testWeight != $refweight\nGG: $gweight, GG_counter: $gweightbox\nLver: $Lver, Rver: $Rver"
 
     Ks = inR + inL - K
     Lver = interaction(inL, Ks, inR, K, false)
@@ -89,20 +75,14 @@ function testOneLoopVer4(curr)
     dTau = varT[2] - varT[1]
     gweight = green(dTau, K) * green(dTau, Ks)
 
-    weight.dir = Lver.ex * Rver.dir + Lver.dir * Rver.ex
-    weight.ex = Lver.dir * Rver.dir + Lver.ex * Rver.ex
+    weight[DI] = Lver[EX] * Rver[DI] + Lver[DI] * Rver[EX]
+    weight[EX] = Lver[DI] * Rver[DI] + Lver[EX] * Rver[EX]
 
     weight *= gweight * PhaseFactor * Vertex4.SymFactor[S]
     weight *= cos(2.0 * pi / Beta * dTau * 2.0)
 
     refweight = evalOneLoopVer4([S], curr)
-
-    if abs(weight.dir - refweight.dir) > 1.0e-16 || abs(weight.ex - refweight.ex) > 1.0e-16
-        printstyled("$weight != $refweight\n", color = :red)
-        println("GG: $gweight")
-        println("Lver: $Lver")
-        println("Rver: $Rver")
-    end
+    @assert isapprox(weight, refweight, rtol = 1.0e-16) "\n$weight != $refweight\nGG: $gweight, GG_counter: $gweightbox\nLver: $Lver, Rver: $Rver"
 end
 
 export testOneLoopVer4
