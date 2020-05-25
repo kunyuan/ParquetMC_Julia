@@ -123,11 +123,13 @@ function bubble(level, loopNum, ol, chan, legK, loopKidx, tidx, side, inbox)
     oR = loopNum - 1 - oL
     TinLidx = Tidx
     TinRidx = Tidx + (oL + 1)
+    Llopidx = loopKidx + 1
+    Rlopidx = loopKidx + 1 + ol;
 
 # function verTree(level, loopNum, chan, legK, loopKidx, tidx, side, inbox)
     if chan == T
         if ver4.inBox == false
-            Lver = VerTree(lvl, oL, F, LLegK,  TinLidx, LEFT, false)
+            Lver = VerTree(lvl, oL, F, LLegK, Llopidx, TinLidx, LEFT, false)
             Rver = _Ver4(lvl, oR, FULL, TinRidx, RIGHT, false)
         else
             Lver = _Ver4(lvl, oL, F_CT, TinLidx, LEFT, true)
