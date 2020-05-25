@@ -67,9 +67,7 @@ end
 @inline dot(k, q) =
     DIM == 3 ? k[1] * q[1] + k[2] * q[2] + k[3] * q[3] : k[1] * q[1] + k[2] * q[2]
 
-abstract type AbstractRoot end
-
-mutable struct State <: AbstractRoot
+mutable struct State 
     step::Int
     order::Int
     absWeight::Float
