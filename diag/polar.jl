@@ -6,10 +6,8 @@ include("propagator.jl")
 using .Vertex4: Green, Ver4
 using .Propagator: green
 
-function init(_varT::Vector{Float}, _varK::Vector{Mom})
-    global varT = _varT
-    global varK = _varK
-end
+const varK = Main.Curr.K
+const varT = Main.Curr.T
 
 struct Polarization
     order::Int

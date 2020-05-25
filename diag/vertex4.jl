@@ -6,6 +6,8 @@ using D3Trees
 
 const ChanMap = [I, T, U, S, T, U]
 const SymFactor = [1.0, -1.0, 1.0, -0.5, 1.0, -1.0]
+const varT = Main.Curr.T
+const varK = Main.Curr.K
 
 struct Green
     Tpair::Vector{Tuple{Int,Int}}
@@ -13,9 +15,9 @@ struct Green
     Green() = new([], [])
 end
 
-function eval(G::Green, K::Mom, _varT, IsAnomal = false)
+function eval(G::Green, K::Mom, IsAnomal = false)
     for (i, t) in enumerate(G.Tpair)
-        G.weight[i] = green(_varT[t[OUT]] - _varT[t[IN]], K)
+        G.weight[i] = green(varT[t[OUT]] - varT[t[IN]], K)
     end
 end
 
@@ -144,7 +146,7 @@ struct Ver4
         UST = [c for c in chan if c != I]
         II = [c for c in chan if c == I]
         for c in UST
-            for ol = 0:loopNum - 1
+            for ol = 0:loopNum-1
                 bubble = Bubble{Ver4}(ver4, c, ol)
                 if length(bubble.map) > 0
                     push!(ver4.bubble, bubble)
@@ -164,10 +166,10 @@ struct Ver4
     end
 end
 
-function eval(ver4::Ver4, KinL, KoutL, KinR, KoutR, Kidx::Int, var, fast = false)
+function eval(ver4::Ver4, KinL, KoutL, KinR, KoutR, Kidx::Int, fast = false)
     if ver4.loopNum == 0
         DiagType == POLAR ?
-        ver4.weight[1] = interaction(KinL, KoutL, KinR, KoutR, ver4.inBox, norm(var.K[0])) :
+        ver4.weight[1] = interaction(KinL, KoutL, KinR, KoutR, ver4.inBox, norm(varK[0])) :
         ver4.weight[1] = interaction(KinL, KoutL, KinR, KoutR, ver4.inBox)
         return
     end
@@ -175,24 +177,24 @@ function eval(ver4::Ver4, KinL, KoutL, KinR, KoutR, Kidx::Int, var, fast = false
     # LoopNum>=1
     ver4.weight .*= 0.0 # initialize all weights
     G = ver4.G
-    K, Kt, Ku, Ks = (var.K[Kidx], ver4.K[1], ver4.K[2], ver4.K[3])
-    eval(G[1], K, var.T)
+    K, Kt, Ku, Ks = (varK[Kidx], ver4.K[1], ver4.K[2], ver4.K[3])
+    eval(G[1], K, varT)
     bubWeight = counterBubble(K)
 
     for c in ver4.chan
         if c == T || c == TC
             Kt .= KoutL .+ K .- KinL
             if (!ver4.inBox)
-                eval(G[T], Kt, var.T)
+                eval(G[T], Kt)
             end
         elseif c == U || c == UC
             # can not be in box!
             Ku .= KoutR .+ K .- KinL
-            eval(G[U], Ku, var.T)
+            eval(G[U], Ku)
         else
             # S channel, and cann't be in box!
             Ks .= KinL .+ KinR .- K
-            eval(G[S], Ks, var.T)
+            eval(G[S], Ks)
         end
     end
 
@@ -201,21 +203,21 @@ function eval(ver4::Ver4, KinL, KoutL, KinR, KoutR, Kidx::Int, var, fast = false
         Factor = SymFactor[c] * PhaseFactor
 
         if c == T || c == TC
-            eval(b.Lver, KinL, KoutL, Kt, K, Kidx + 1, var)
-            eval(b.Rver, K, Kt, KinR, KoutR, Kidx + 1, var)
+            eval(b.Lver, KinL, KoutL, Kt, K, Kidx + 1)
+            eval(b.Rver, K, Kt, KinR, KoutR, Kidx + 1)
         elseif c == U || c == UC
-            eval(b.Lver, KinL, KoutR, Ku, K, Kidx + 1, var)
-            eval(b.Rver, K, Ku, KinR, KoutL, Kidx + 1, var)
+            eval(b.Lver, KinL, KoutR, Ku, K, Kidx + 1)
+            eval(b.Rver, K, Ku, KinR, KoutL, Kidx + 1)
         else
             # S channel
-            eval(b.Lver, KinL, Ks, KinR, K, Kidx + 1, var)
-            eval(b.Rver, K, KoutL, Ks, KoutR, Kidx + 1, var)
+            eval(b.Lver, KinL, Ks, KinR, K, Kidx + 1)
+            eval(b.Rver, K, KoutL, Ks, KoutR, Kidx + 1)
         end
 
         rN = length(b.Rver.weight)
         for (l, Lw) in enumerate(b.Lver.weight)
             for (r, Rw) in enumerate(b.Rver.weight)
-                map = b.map[(l - 1) * rN + r]
+                map = b.map[(l-1)*rN+r]
 
                 if ver4.inBox || c == TC || c == UC
                     gWeight = bubWeight * Factor
@@ -226,8 +228,8 @@ function eval(ver4::Ver4, KinL, KoutL, KinR, KoutR, Kidx::Int, var, fast = false
                 if fast && ver4.level == 0
                     pair = ver4.Tpair[map.ver]
                     dT =
-                        var.T[pair[INL]] - var.T[pair[OUTL]] + var.T[pair[INR]] -
-                        var.T[pair[OUTR]]
+                        varT[pair[INL]] - varT[pair[OUTL]] + varT[pair[INR]] -
+                        varT[pair[OUTR]]
                     gWeight *= cos(2.0 * pi / Beta * dT)
                     w = ver4.weight[ChanMap[c]]
                 else
@@ -236,12 +238,14 @@ function eval(ver4::Ver4, KinL, KoutL, KinR, KoutR, Kidx::Int, var, fast = false
 
                 if c == T || c == TC
                     w[DI] +=
-                        gWeight * (Lw[DI] * Rw[DI] * SPIN + Lw[DI] * Rw[EX] + Lw[EX] * Rw[DI])
+                        gWeight *
+                        (Lw[DI] * Rw[DI] * SPIN + Lw[DI] * Rw[EX] + Lw[EX] * Rw[DI])
                     w[EX] += gWeight * Lw[EX] * Rw[EX]
                 elseif c == U || c == UC
                     w[DI] += gWeight * Lw[EX] * Rw[EX]
                     w[EX] +=
-                        gWeight * (Lw[DI] * Rw[DI] * SPIN + Lw[DI] * Rw[EX] + Lw[EX] * Rw[DI])
+                        gWeight *
+                        (Lw[DI] * Rw[DI] * SPIN + Lw[DI] * Rw[EX] + Lw[EX] * Rw[DI])
                 else
                     # S channel,  see the note "code convention"
                     w[DI] += gWeight * (Lw[DI] * Rw[EX] + Lw[EX] * Rw[DI])

@@ -48,7 +48,7 @@ function Counter()
     _counter::Int128 = 0
     step() = (_counter += 1)
     state() = _counter
-    ()->(step, state) # make step() and state() public
+    () -> (step, state) # make step() and state() public
 end
 
 @inline function InterTauNum(order)
@@ -66,19 +66,6 @@ end
 # @inline norm(k) = DIM == 3 ? sqrt(k[1]^2 + k[2]^2 + k[3]^2) : sqrt(k[1]^2 + k[2]^2)
 @inline dot(k, q) =
     DIM == 3 ? k[1] * q[1] + k[2] * q[2] + k[3] * q[3] : k[1] * q[1] + k[2] * q[2]
-
-mutable struct State 
-    step::Int
-    order::Int
-    absWeight::Float
-    scaleidx::Int
-    extTidx::Int
-    extKidx::Int
-    extAngidx::Int
-    T::Vector{Float}
-    K::Vector{Mom}
-    State() = new(0, 0, 0.0, 1, 1, 1, 1, Vector{Float}(undef, LastTidx), Vector{Mom}(undef, LastKidx))
-end
 
 # const varT = Vector{Float}(undef, LastTidx)
 # const varK = Vector{Mom}(undef, LastKidx)
