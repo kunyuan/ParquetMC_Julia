@@ -146,7 +146,7 @@ struct Ver4
         UST = [c for c in chan if c != I]
         II = [c for c in chan if c == I]
         for c in UST
-            for ol = 0:loopNum - 1
+            for ol = 0:loopNum-1
                 bubble = Bubble{Ver4}(ver4, c, ol)
                 if length(bubble.map) > 0
                     push!(ver4.bubble, bubble)
@@ -201,7 +201,7 @@ function eval(ver4::Ver4, KinL, KoutL, KinR, KoutR, Kidx::Int, fast = false)
         c = b.chan
         Factor = SymFactor[c] * PhaseFactor
         Llopidx = Kidx + 1
-        Rlopidx = Kidx + 1 + b.Lver.loopNum;
+        Rlopidx = Kidx + 1 + b.Lver.loopNum
 
         if c == T || c == TC
             eval(b.Lver, KinL, KoutL, Kt, K, Llopidx)
@@ -218,7 +218,7 @@ function eval(ver4::Ver4, KinL, KoutL, KinR, KoutR, Kidx::Int, fast = false)
         rN = length(b.Rver.weight)
         for (l, Lw) in enumerate(b.Lver.weight)
             for (r, Rw) in enumerate(b.Rver.weight)
-                map = b.map[(l - 1) * rN + r]
+                map = b.map[(l-1)*rN+r]
 
                 if ver4.inBox || c == TC || c == UC
                     gWeight = bubWeight * Factor

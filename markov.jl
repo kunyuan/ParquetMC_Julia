@@ -50,7 +50,7 @@ function test()
 end
 
 function benchmark(o)
-        # @allocated begin
+    # @allocated begin
     if DiagType == GAMMA
         @fastmath Vertex4.eval(
             ver4[o],
@@ -71,8 +71,10 @@ function printStatus()
     println(Beta)
 end
 
-function eval()
-    return
+function eval(order)
+    if DiagType == POLAR
+        return Polar[order].eval()
+    end
 end
 
 function changeOrder()

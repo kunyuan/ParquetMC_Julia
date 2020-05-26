@@ -51,16 +51,28 @@ function Counter()
     () -> (step, state) # make step() and state() public
 end
 
-@inline function InterTauNum(order)
+@inline function lastInnerTidx(order)
     if DiagType == SIGMA || DiagType == DELTA
-        return order - 2
-    elseif DiagType == POLAR
         return order - 1
-    else
-        # GAMMA
+    elseif DiagType == POLAR
         return order
+    else
+        return order + 1 # GAMMA
     end
 end
+
+@inline function firstInnerKidx()
+    if DiagType == GAMMA
+        return 5
+    elseif DiagType == SIGMA || DiagType == POLAR || DiagType == DELTA
+        return 2
+    end
+end
+
+@inline function lastInnerKidx(order)
+    return firstInnerKidx() + order - 1
+end
+
 
 @inline squaredNorm(k) = DIM == 3 ? k[1]^2 + k[2]^2 + k[3]^2 : k[1]^2 + k[2]^2
 # @inline norm(k) = DIM == 3 ? sqrt(k[1]^2 + k[2]^2 + k[3]^2) : sqrt(k[1]^2 + k[2]^2)
