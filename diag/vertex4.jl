@@ -9,30 +9,47 @@ const SymFactor = [1.0, -1.0, 1.0, -0.5, 1.0, -1.0]
 const varT = Main.Curr.T
 const varK = Main.Curr.K
 
+const Span SVector{2, Int} #head, tail
+
 mutable struct Green
-    Tpair::Int
     K::Int
-    weight::Float
-    Green() = new(-1, -1, 0.0)
+    Tpair::SVector{2, Int}
+    weight::double
 end
 
-mutable struct Ver4
-    Tpair::Int
-    K::SVector{4,Int}
-    Bubble::SVector{2,Int} # idx range of bubbles
-    weight::VerWeight
-    Ver4() = new(-1, (-1, -1, -1, -1), (-1, -1), (0.0, 0.0))
+struct Bubble
+    loopNum::Int
+    chan::Int
+    Tidx::Int
+    Kidx::Int
+    inBox::Bool
+    legK::SVector{4,Int}
+
+    mapidx::Vector{Int} # map idx head and tail
 end
 
-const GTpair = Vector{SVector{2,Int}}(undef, 0)
-const VerTpair = Vector{SVector{4,Int}}(undef, 0)
+struct Map
+    Lver::Int
+    Rver::Int
+    G0idx::Int # shared G idx
+    Gcidx::Int # channel dependent G idx
+    idx::Int  # weight idx
+end
 
-const KPool = Vector{Mom}(undef, 0)
-const GPool = Vector{Green}(undef, 0)
-const Ver4Pool = @MVector [Vector{Ver4}(undef, 0) for i in 1:Order]
+struct VerTree
+    bubble::Vector{Bubble}
+    map::Vector{Map}(undef, 0)
+    weight::Vector{VerWeight}(undef, 0) # weight of each ver4 in VerPool
+    Tpair::Vector{SVector{4,Int}}(undef, 0)
+    Ver4Pool()=new([], [], [])
+end
 
-isequal(g1::Green, g2::Green) = ((g1.Tpair == g2.Tpair) && (g1.K == g2.K))
-isequal(v1::Ver4, v2::Ver4) = ((v1.Tpair == v2.Tpair) && (v1.K == v2.K))
+const KPool =@Mector [Vector{Mom}(undef, 0) for o in 1:Order]
+const GPool=@Mector [Vector{Green}(undef, 0) for o in 1:Order]
+const VerPool = @MVector [Vector{Ver4Pool}() for o in 1:Order]
+
+isequal(g1::Green, g2::Green) = (g1.K == g2.K&&g1.Tpair==g2.Tpair)
+isequal(v1::Ver4, v2::Ver4) = (v1.loopNum == v2.loopNum &&v1.inBox==v2.inBox&& v1.Kidx == v2.Kidx && v1.chan == v2.chan&&v1.Tidx==v2.Tidx)
 function isequal(k1::Mom, k2::Mom)
     # test isequal with two critera, just in case
     flag1 = prod([isapprox(k1[i], k2[i], rtol = 1.0e-10) for i in 1:DIM])
@@ -80,30 +97,30 @@ function GetLegK(legK, K0, Kc, chan::Int)
     return LLegK, RLegK
 end
 
-function verTree(level, loopNum, chan, legK, loopKidx, tidx, side, inbox)
+function ver(pool, level, loopNum, chan, legK, loopKidx, tidx, side, inbox)
     @assert length(legK) == 4 "4 leg K are expected!"
     # first push four legs into the 
-    legKidx = [pushObj!(KPool, _k) for _k in legK]
+    legKidx = @SVector [pushObj!(KPool, _k) for _k in legK]
 
     if loopNum <= 0
         # negative loopNum should never be used in evaluation
-        Tpairidx = pushObj!(VerTpair, (tidx, tidx, tidx, tidx))
-        ver4idx = pushObj!(Ver4(Tpairidx, SVector{4,Mom}(legK), (-1, -1), 0.0))
+        Tpairidx = pushObj!(pool, (tidx, tidx, tidx, tidx))
+        veridx = pushObj!(0, 0, 0, 0, inBox, legKidx, [])
         return ver4idx
     else
         UST = [c for c in chan if c != I]
         for c in UST
             for ol = 0:loopNum - 1
-                head, tail = bubble(loopNum, ol, c, legK, Kidx, tidx, side, inbox)
+                map=bubble(pool, level, loopNum, ol, c, legK, loopKidx, tidx, side, inbox)
+                veridx=pushObj!(loopNum, c, tidx, loopKidx, inbox, legKidx, map)
             end
         end
     end
 end
 
-function bubble(level, loopNum, ol, chan, legK, loopKidx, tidx, side, inbox)
+function bubble(pool, level, loopNum, ol, chan, legK, loopKidx, tidx, side, inbox)
     @assert chan != I "bubble can not be I channel"
     @assert length(legK) == 4 "4 leg K are expected!"
-    return 0, 0
     K0 = varK[loopKidx]
     K0idx = push!(KPool, K0) # the common K shared by all channel
 
@@ -129,27 +146,24 @@ function bubble(level, loopNum, ol, chan, legK, loopKidx, tidx, side, inbox)
 # function verTree(level, loopNum, chan, legK, loopKidx, tidx, side, inbox)
     if chan == T
         if ver4.inBox == false
-            Lver = VerTree(lvl, oL, F, LLegK, Llopidx, TinLidx, LEFT, false)
-            Rver = _Ver4(lvl, oR, FULL, TinRidx, RIGHT, false)
+            Lver = ver(lvl, oL, F, LLegK, Llopidx, TinLidx, LEFT, false)
+            Rver = ver(lvl, oR, FULL, RLegK, Rlopidx, TinRidx, RIGHT, false)
         else
-            Lver = _Ver4(lvl, oL, F_CT, TinLidx, LEFT, true)
-            Rver = _Ver4(lvl, oR, FULL_CT, TinRidx, RIGHT, true)
+            Lver = ver(lvl, oL, F_CT, LLegK, Llopidx, TinLidx, LEFT, true)
+            Rver = ver(lvl, oR, FULL_CT, RLegK, Rlopidx, TinRidx, RIGHT, true)
         end
     elseif chan == U
         @assert ver4.inBox == false "Ver4 in box can't have U diagrams!"
-        Lver = _Ver4(lvl, oL, F, TinLidx, LEFT, false)
-        Rver = _Ver4(lvl, oR, FULL, TinRidx, RIGHT, false)
+        Lver = ver(lvl, oL, F, LLegK, Llopidx, TinLidx, LEFT, false)
+        Rver = vere(lvl, oR, FULL, RLegK, Rlopidx, TinRidx, RIGHT, false)
     elseif chan == S
         @assert ver4.inBox == false "Ver4 in box can't have S diagrams!"
-        Lver = _Ver4(lvl, oL, V, TinLidx, LEFT, false)
-        Rver = _Ver4(lvl, oR, FULL, TinRidx, RIGHT, false)
+        Lver = ver(lvl, oL, V, LLegK, Llopidx, TinLidx, LEFT, false)
+        Rver = ver(lvl, oR, FULL, RLegK, Rlopidx, TinRidx, RIGHT, false)
     elseif chan == TC || chan == UC
-        Lver = _Ver4(lvl, oL, F_CT, TinLidx, LEFT, true)
-        Rver = _Ver4(lvl, oR, FULL_CT, TinRidx, RIGHT, true)
+        Lver = ver(lvl, oL, F_CT, LLegK, Llopidx, TinLidx, LEFT, true)
+        Rver = ver(lvl, oR, FULL_CT, RLegK, Rlopidx, TinRidx, RIGHT, true)
     end
-
-    # # println("para: ", TinLidx, ", ", Lver.Tidx, ", ", ver4.inBox)
-    # @assert Lver.Tidx == ver4.Tidx "Lver Tidx must be equal to vertex4 Tidx! LoopNum: $(ver4.loopNum), LverLoopNum: $(Lver.loopNum), chan: $chan"
 
     # ############## construct IdxMap ########################################
     # map = []
@@ -183,6 +197,7 @@ function bubble(level, loopNum, ol, chan, legK, loopKidx, tidx, side, inbox)
     #     end
     # end
     # return new(chan, Lver, Rver, map)
+    return 0, 0
 end
 
 end
