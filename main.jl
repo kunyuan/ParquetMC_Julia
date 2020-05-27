@@ -61,7 +61,7 @@ Markov.test()
 import BenchmarkTools: @btime
 for _order = 1:Order
     println("Benchmark Order $_order")
-    @btime Markov.benchmark(o) samples = 1 evals = 100 setup = (o = $_order)
+    @btime Markov.eval(o) samples = 1 evals = 100 setup = (o = $_order)
     println(sum(Markov.ver4[_order].weight))
 end
 

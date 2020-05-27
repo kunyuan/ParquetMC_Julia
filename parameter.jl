@@ -47,7 +47,7 @@ function Counter()
     _counter::Int128 = 0
     step() = (_counter += 1)
     state() = _counter
-    () -> (step, state) # make step() and state() public
+    ()->(step, state) # make step() and state() public
 end
 
 @inline function lastInnerTidx(order)
@@ -75,7 +75,7 @@ end
 
 
 @inline squaredNorm(k) = DIM == 3 ? k[1]^2 + k[2]^2 + k[3]^2 : k[1]^2 + k[2]^2
-# @inline norm(k) = DIM == 3 ? sqrt(k[1]^2 + k[2]^2 + k[3]^2) : sqrt(k[1]^2 + k[2]^2)
+@inline norm(k) = DIM == 3 ? sqrt(k[1]^2 + k[2]^2 + k[3]^2) : sqrt(k[1]^2 + k[2]^2)
 @inline dot(k, q) =
     DIM == 3 ? k[1] * q[1] + k[2] * q[2] + k[3] * q[3] : k[1] * q[1] + k[2] * q[2]
 

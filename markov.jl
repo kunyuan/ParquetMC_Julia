@@ -4,6 +4,7 @@ include("grid.jl")
 include("diag/vertex4.jl")
 include("diag/polar.jl")
 include("diag/vertex4_test.jl")
+include("observable.jl")
 using Random, StaticArrays, Printf
 import .Vertex4, .Ver4Test, .Polar
 const UpdateNum = 6
@@ -26,6 +27,7 @@ const varK = Main.Curr.K
 const varT = Main.Curr.T
 
 const ver4 = Vector{Vertex4.Ver4}(undef, 0)
+const oneBody = Observable.OneBody()
 
 # function init(_counter, _rng)
 function init()
@@ -50,64 +52,63 @@ function init()
     end
 end
 
-function test()
+@fastmath function test()
     if DiagType == GAMMA
         Ver4Test.testOneLoopVer4(curr)
     end
 end
 
-function benchmark(o)
-    # @allocated begin
-    if DiagType == GAMMA
-        @fastmath Vertex4.eval(
-            ver4[o],
-            varK[INL],
-            varK[OUTL],
-            varK[INR],
-            varK[OUTR],
-            5,
-            true,
-        )
+@fastmath function eval(order)
+    order == 0 && return 1.0
+    if DiagType == POLAR
+        return Polar[order].eval()
+    elseif DiagType == GAMMA
+        Vertex4.eval(ver4[order], varK[INL], varK[OUTL], varK[INR], varK[OUTR], 5, true)
+        chanWeight = sum(ver4[order].weight)
+        return chanWeight[DI] + chanWeight[EX] / SPIN
+    else
+        throw("Not implemented!")
     end
 end
 
 function measure()
-    return
+    factor = 1.0 / curr.absWeight / ReWeight[curr.order + 1]
+    if DiagType == POLAR || DiagType == SIGMA || DiagType == DELTA
+        Observable.measure(oneBody, eval(curr.order), factor)
+    end
 end
 
 function save()
-    return
+    if DiagType == POLAR || DiagType == SIGMA || DiagType == DELTA
+        Observable.save(oneBody)
+    end
 end
 
 function reweight()
     return
 end
 
-function eval(order)
-    if DiagType == POLAR
-        return Polar[order].eval()
-    end
-end
-
 function increaseOrder()
     curr.order == Order && return # already at the highest order
     newOrder = curr.order + 1
     if curr.order == 0
+        # create new external Tau and K
         newextTidx, propT = createExtIdx(TauGridSize)
         varT[LastTidx] = Grid.tau.grid[curr.extTidx]
         newextKidx, propK = createExtIdx(KGridSize)
-        varK[0] = Grid.K.grid(curr.extKidx)
+        varK[1][1] = Grid.K.grid[curr.extKidx]
     else
+        # create new internal Tau and K
         varT[lastInnerTidx(curr.order)], propT = createTau()
         varK[lastInnerKidx(curr.order)], propK = createK()
     end
     prop = propT * propK
 
     newAbsWeight = abs(eval(newOrder))
-    R = prop * newAbsWeight * ReWeight[newOrder] / curr.absWeight / ReWeight[curr.order]
-    Proposed[INCREASE_ORDER][curr.order] += 1
+    R = prop * newAbsWeight * ReWeight[newOrder + 1] / curr.absWeight / ReWeight[curr.order + 1]
+    Proposed[INCREASE_ORDER, curr.order + 1] += 1
     if rand(rng) < R
-        Accepted[INCREASE_ORDER][curr.order] += 1
+        Accepted[INCREASE_ORDER, curr.order + 1] += 1
         curr.order = newOrder
         curr.absWeight = newAbsWeight
         if curr.order == 0
@@ -121,18 +122,20 @@ function decreaseOrder()
     curr.order == 0 && return
     newOrder = curr.order - 1
     if newOrder == 0
+        # remove external Tau and K
         propT = removeExtIdx(TauGridSize)
         propK = removeExtIdx(KGridSize)
     else
+        # remove internal Tau and K
         propT = removeTau()
         propK = removeK(varK[lastInnerKidx(curr.order)])
     end
     prop = propT * propK
     newAbsWeight = abs(eval(newOrder))
-    R = prop * newAbsWeight * ReWeight[newOrder] / curr.absWeight / ReWeight[curr.order]
-    Proposed[DECREASE_ORDER][curr.order] += 1
+    R = prop * newAbsWeight * ReWeight[newOrder + 1] / curr.absWeight / ReWeight[curr.order + 1]
+    Proposed[DECREASE_ORDER, curr.order + 1] += 1
     if rand(rng) < R
-        Accepted[DECREASE_ORDER][curr.order] += 1
+        Accepted[DECREASE_ORDER, curr.order + 1] += 1
         curr.order = newOrder
         curr.absWeight = newAbsWeight
     end
@@ -187,7 +190,7 @@ end
 
 @inline function createK()
     dK = Kf / 2.0
-    newK = Mom()
+    newK = zero(Mom)
     Kamp = Kf + (rand(rng) - 0.5) * 2.0 * dK
     Kamp <= 0.0 && return newK, 0.0
     prop = 0.0
@@ -257,9 +260,9 @@ function printStatus()
             @printf(
                 "  Order%2d:   %12.6f %12.6f %12.6f\n",
                 o,
-                Proposed[i, o+1],
-                Accepted[i, o+1],
-                Accepted[i, o+1] / Proposed[i, o+1]
+                Proposed[i, o + 1],
+                Accepted[i, o + 1],
+                Accepted[i, o + 1] / Proposed[i, o + 1]
             )
         end
         println(bar)
