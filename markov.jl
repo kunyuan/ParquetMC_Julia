@@ -7,8 +7,16 @@ include("diag/vertex4_test.jl")
 using Random, StaticArrays, Printf
 import .Vertex4, .Ver4Test, .Polar
 const UpdateNum = 6
-const INCREASE_ORDER, DECREASE_ORDER, CHANGE_EXTTAU, CHANGE_EXTK, CHANGE_TAU, CHANGE_K = 1:UpdateNum
-const Name = ["increase_order", "decrease_order", "change_ExtTau", "change_ExtK", "change_Tau", "change_K"]
+const INCREASE_ORDER, DECREASE_ORDER, CHANGE_EXTTAU, CHANGE_EXTK, CHANGE_TAU, CHANGE_K =
+    1:UpdateNum
+const Name = [
+    "increase_order",
+    "decrease_order",
+    "change_ExtTau",
+    "change_ExtK",
+    "change_Tau",
+    "change_K",
+]
 const Accepted = (@MArray zeros(Float, UpdateNum, Order + 1)) .+ 1.0e-10
 const Proposed = (@MArray zeros(Float, UpdateNum, Order + 1)) .+ 1.0e-10
 
@@ -21,9 +29,7 @@ const ver4 = Vector{Vertex4.Ver4}(undef, 0)
 
 # function init(_counter, _rng)
 function init()
-
     #######  initialize MC variables  ################################
-
     ###### initialized diagram trees #######################################
 
     if DiagType == GAMMA
@@ -84,7 +90,22 @@ function eval(order)
 end
 
 function changeOrder()
-    return
+    if rand(rng) < 0.5
+        curr.order == Order && return # already at the highest order
+        name = INCREASE_ORDER
+        newOrder = curr.order + 1
+        if curr.order == 0
+            curr.extTidx, propT = createExtIdx(TauGridSize)
+            varT[LastTidx] = Grid.tau.grid[curr.extTidx]
+            curr.extKidx, propK = createExtIdx(KGridSize)
+            varK[0] = Grid.K.grid(curr.extKidx)
+        else
+            varT[lastInnerTidx(curr.order)]
+        end
+
+    else
+
+    end
 end
 
 function changeTau()
@@ -105,6 +126,93 @@ function changeExtK()
     return
 end
 
+@inline createExtIdx(GridSize) = rand(rng, 1:GridSize), GridSize
+@inline removeExtIdx(GridSize) = 1.0 / GridSize
+@inline shiftExtIdx(GridSize) = rand(rng, 1:GridSize), 1.0
+
+# newTau, Prop
+@inline createTau() = rand(rng) * Beta, Beta
+@inline removeTau(oldTau) = 1.0 / Beta
+@inline function shiftTau(oldTau)
+    x = rand(rng)
+    newTau = 0.0
+    prop = 1.0
+    if x < 1.0 / 3
+        newTau = oldTau + 4 * Ef * (rand(rng) - 0.5), prop
+    elseif x < 2.0 / 3
+        newTau = -oldTau
+    else
+        newTau = rand(rng) * Beta
+    end
+
+    if newTau < 0.0
+        newTau += Beta
+    elseif newTau > Beta
+        newTau -= Beta
+    elseif newTau == 0.0 || newTau == 0.0
+        prop = 0.0
+    end
+    return newTau, prop
+end
+
+@inline function createK(oldK)
+    dK = Kf / 2.0
+    Kamp = Kf + (rand(rng) - 0.5) * 2.0 * dK
+    Kamp <= 0.0 && return oldK, 0.0
+    newK = Mom()
+    prop = 0.0
+    # Kf-dK<Kamp<Kf+dK 
+    ϕ = 2.0 * pi * rand(rng)
+    if DIM == 3
+        θ = pi * rand(rng)
+        newK[1] = Kamp * cos(ϕ) * sin(θ)
+        newK[2] = Kamp * sin(ϕ) * sin(θ)
+        newK[3] = Kamp * cos(θ)
+        prop = (2.0 * dK) * (2.0 * pi) * pi * (sin(θ) * Kamp^2)
+        # prop density of KAmp in [Kf-dK, Kf+dK), prop density of Phi
+        # prop density of Theta, Jacobian
+    else
+        # DIM==2
+        newK[1] = Kamp * cos(θ)
+        newK[2] = Kamp * sin(θ)
+        prop = (2.0 * dK) * (2.0 * pi) * (Kamp)
+        # prop density of KAmp in [Kf-dK, Kf+dK), prop density of Phi, Jacobian
+    end
+    return newK, prop
+end
+
+@inline function removeK(oldK)
+    dK = Kf / 2.0
+    Kamp = norm(oldK)
+    (Kamp < Kf - dK || Kamp > Kf + dK) && return 0.0
+    if DIM == 3
+        sinTheta = sqrt(oldK[1]^2 + oldK[2]^2) / Kamp
+        if sinTheta > 1.0e-15
+            return 1.0 / (2.0 * dK * 2.0 * pi^2 * sinTheta * Kamp^2)
+        else
+            return 0.0
+        end
+    else
+        # DIM==2
+        return 1.0 / (2.0 * dK * 2.0 * pi * Kamp)
+    end
+end
+
+@inline function shiftK(oldK)
+    x = rand(rng)
+    if x < 1.0 / 3
+        dK = Beta > 1.0 ? Kf / Beta * 3.0 : Kf
+        return oldK + rand(rng, DIM) * dK, 1.0
+    elseif x < 2.0 / 3
+        λ = 1.5
+        ratio = 1.0 / λ + rand(rng) * (λ - 1.0 / λ)
+        prop = (DIM == 2) ? 1.0 : ratio
+        return oldK * ratio, prop
+    else
+        return -oldK, 1.0
+    end
+end
+
 const barbar = "====================================================================================="
 const bar = "-------------------------------------------------------------------------------------"
 
@@ -113,10 +221,16 @@ function printStatus()
     println(barbar)
     println("Step:", curr.step)
     println(bar)
-    for i in 1:UpdateNum
+    for i = 1:UpdateNum
         @printf("%-12s %12s %12s %12s\n", Name[i], "Proposed", "Accepted", "Ratio  ")
-        for o in 1:Order
-            @printf("  Order%2d:   %12.6f %12.6f %12.6f\n", o, Proposed[i, o + 1], Accepted[i, o + 1], Accepted[i, o + 1] / Proposed[i, o + 1])
+        for o = 1:Order
+            @printf(
+                "  Order%2d:   %12.6f %12.6f %12.6f\n",
+                o,
+                Proposed[i, o + 1],
+                Accepted[i, o + 1],
+                Accepted[i, o + 1] / Proposed[i, o + 1]
+            )
         end
         println(bar)
     end

@@ -69,7 +69,7 @@ println("Start Simulation ...")
 block = 0
 lasttime = time()
 for block in ProgressBars.ProgressBar(1:TotalBlock)
-    for i in 1:1000_000
+    for i = 1:1000_000
         Curr.step += 1
         x = rand(Curr.rng)
         if x < 1.0 / 5.0

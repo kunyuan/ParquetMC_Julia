@@ -47,7 +47,7 @@ function Counter()
     _counter::Int128 = 0
     step() = (_counter += 1)
     state() = _counter
-    ()->(step, state) # make step() and state() public
+    () -> (step, state) # make step() and state() public
 end
 
 @inline function lastInnerTidx(order)
