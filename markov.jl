@@ -4,13 +4,14 @@ include("grid.jl")
 include("diag/vertex4.jl")
 include("diag/polar.jl")
 include("diag/vertex4_test.jl")
-using Random, StaticArrays
+using Random, StaticArrays, Printf
 import .Vertex4, .Ver4Test, .Polar
-const UpdateNum = 9
+const UpdateNum = 6
+const INCREASE_ORDER, DECREASE_ORDER, CHANGE_EXTTAU, CHANGE_EXTK, CHANGE_TAU, CHANGE_K = 1:UpdateNum
+const Name = ["increase_order", "decrease_order", "change_ExtTau", "change_ExtK", "change_Tau", "change_K"]
+const Accepted = @MArray zeros(Float, UpdateNum, Order + 1)
+const Proposed = @MArray zeros(Float, UpdateNum, Order + 1)
 
-# const curr = Main.State()
-# const varT = Vector{Float}(undef, LastTidx)
-# const varK = Vector{Mom}(undef, LastKidx)
 const curr = Main.Curr
 const rng = Main.Curr.rng
 const varK = Main.Curr.K
@@ -22,6 +23,8 @@ const ver4 = Vector{Vertex4.Ver4}(undef, 0)
 function init()
 
     #######  initialize MC variables  ################################
+    Accepted .+= 1.0e-10
+    Proposed .+= 1.0e-10
 
     ###### initialized diagram trees #######################################
 
@@ -64,11 +67,16 @@ function benchmark(o)
     end
 end
 
-function printStatus()
-    # Var.counter += 1
-    ReWeight[2] = 1.6
-    println(curr.extAngidx)
-    println(Beta)
+function measure()
+    return
+end
+
+function save()
+    return
+end
+
+function reweight()
+    return
 end
 
 function eval(order)
@@ -82,6 +90,8 @@ function changeOrder()
 end
 
 function changeTau()
+    Proposed[CHANGE_TAU, curr.order + 1] += 1
+    Accepted[CHANGE_TAU, curr.order + 1] += 1
     return
 end
 
@@ -97,6 +107,21 @@ function changeExtK()
     return
 end
 
-export printStatus, changeOrder, changeTau, changeK, changeExtTau, changeExtK, eval, test
+const barbar = "====================================================================================="
+const bar = "-------------------------------------------------------------------------------------"
+
+function printStatus()
+    # Var.counter += 1
+    println(barbar)
+    println("Step:", curr.step)
+    println(bar)
+    for i in 1:UpdateNum
+        @printf("%-12s %12s %12s %12s\n", Name[i], "Proposed", "Accepted", "Ratio  ")
+        for o in 1:Order
+            @printf("  Order%2d:   %12.6f %12.6f %12.6f\n", o, Proposed[i, o + 1], Accepted[i, o + 1], Accepted[i, o + 1] / Proposed[i, o + 1])
+        end
+        println(bar)
+    end
+end
 
 end

@@ -2,7 +2,7 @@ const GAMMA, SIGMA, POLAR, DELTA = (1, 2, 3, 4)
 ################ Global parameters  ##################################
 
 const Order = 5
-const totalStep = 101
+const TotalBlock = 101
 const beta, Rs, Mass2, Lambda, maxK = (40.0, 1.0, 0.0, 1.0, 3.0)
 const ReWeight = [1.0, 3.0, 30.0, 1.0, 0.2, 0.1, 0.01]
 # const DiagType = POLAR
@@ -19,7 +19,6 @@ const Kf = (DIM == 3) ? (9.0 * pi / 4.0)^(1.0 / 3) / Rs : sqrt(2.0) / Rs
 const Ef, Mu, Nf = (Kf^2, Kf^2, Kf / (4.0 * pi^2) * SPIN)
 const Beta = beta / Ef # rescale the temperature
 const MaxK = maxK * Kf
-const TotalStep = totalStep * 1e6
 const PhaseFactor = 1.0 / (2.0 * pi)^DIM
 const LastTidx = 2 * (Order + 2)
 const LastKidx = Order + 8
@@ -48,7 +47,7 @@ function Counter()
     _counter::Int128 = 0
     step() = (_counter += 1)
     state() = _counter
-    () -> (step, state) # make step() and state() public
+    ()->(step, state) # make step() and state() public
 end
 
 @inline function lastInnerTidx(order)

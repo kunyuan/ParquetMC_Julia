@@ -1,7 +1,7 @@
 include("parameter.jl")
 include("grid.jl")
 
-using Random
+using Random, ProgressBars
 
 @assert length(ARGS) >= 1 "Parameters PID, seed are expected!"
 PID = parse(Int, ARGS[1])
@@ -25,6 +25,7 @@ mutable struct State
         curr = new(0, rng, 0, 1, 1, 1, 1, 0.0, varT, varK)
         curr.T[LastTidx] = Grid.tau.grid[curr.extTidx]
         curr.T[1] = 0.0
+
         curr.T[2] = Beta / 2.0
         curr.T[3] = Beta / 3.0
         curr.T[4] = Beta / 4.0
@@ -53,17 +54,49 @@ end
 const Curr = State(RNG)
 include("markov.jl")
 Markov.init()
+
+################# Test and Benchmark ############################
 Markov.test()
 
 import BenchmarkTools: @btime
 for _order = 1:Order
     println("Benchmark Order $_order")
-    @btime Markov.benchmark(o) samples = 1 evals = 1000 setup = (o = $_order)
+    @btime Markov.benchmark(o) samples = 1 evals = 100 setup = (o = $_order)
     println(sum(Markov.ver4[_order].weight))
 end
 
+println("Start Simulation ...")
+block = 0
+lasttime = time()
+for block in ProgressBars.ProgressBar(1:TotalBlock)
+    for i in 1:1000_000
+        Curr.step += 1
+        x = rand(Curr.rng)
+        if x < 1.0 / 5.0
+            Markov.changeOrder()
+        elseif x < 2.0 / 5.0
+            Markov.changeK()
+        elseif x < 3.0 / 5.0
+            Markov.changeTau()
+        elseif x < 4.0 / 5.0
+            Markov.changeExtK()
+        else
+            Markov.changeExtTau()
+        end
 
+        i % 8 == 0 && Markov.measure()
 
-# Markov.init(Counter, RNG)
+        if i % 1000 == 0
+            now = time()
+            duration = now - lasttime
+
+            duration > PrintTime && Markov.printStatus()
+            duration > SaveTime && Markov.save()
+            duration > ReWeightTime && Markov.reweight()
+        end
+    end
+end
 
 Markov.printStatus()
+Markov.save()
+println("End Simulation. ")
