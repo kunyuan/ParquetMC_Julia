@@ -9,8 +9,8 @@ import .Vertex4, .Ver4Test, .Polar
 const UpdateNum = 6
 const INCREASE_ORDER, DECREASE_ORDER, CHANGE_EXTTAU, CHANGE_EXTK, CHANGE_TAU, CHANGE_K = 1:UpdateNum
 const Name = ["increase_order", "decrease_order", "change_ExtTau", "change_ExtK", "change_Tau", "change_K"]
-const Accepted = @MArray zeros(Float, UpdateNum, Order + 1)
-const Proposed = @MArray zeros(Float, UpdateNum, Order + 1)
+const Accepted = (@MArray zeros(Float, UpdateNum, Order + 1)) .+ 1.0e-10
+const Proposed = (@MArray zeros(Float, UpdateNum, Order + 1)) .+ 1.0e-10
 
 const curr = Main.Curr
 const rng = Main.Curr.rng
@@ -23,8 +23,6 @@ const ver4 = Vector{Vertex4.Ver4}(undef, 0)
 function init()
 
     #######  initialize MC variables  ################################
-    Accepted .+= 1.0e-10
-    Proposed .+= 1.0e-10
 
     ###### initialized diagram trees #######################################
 
