@@ -89,28 +89,58 @@ function eval(order)
     end
 end
 
-function changeOrder()
-    if rand(rng) < 0.5
-        curr.order == Order && return # already at the highest order
-        name = INCREASE_ORDER
-        newOrder = curr.order + 1
-        if curr.order == 0
-            curr.extTidx, propT = createExtIdx(TauGridSize)
-            varT[LastTidx] = Grid.tau.grid[curr.extTidx]
-            curr.extKidx, propK = createExtIdx(KGridSize)
-            varK[0] = Grid.K.grid(curr.extKidx)
-        else
-            varT[lastInnerTidx(curr.order)]
-        end
-
+function increaseOrder()
+    curr.order == Order && return # already at the highest order
+    newOrder = curr.order + 1
+    if curr.order == 0
+        newextTidx, propT = createExtIdx(TauGridSize)
+        varT[LastTidx] = Grid.tau.grid[curr.extTidx]
+        newextKidx, propK = createExtIdx(KGridSize)
+        varK[0] = Grid.K.grid(curr.extKidx)
     else
+        varT[lastInnerTidx(curr.order)], propT = createTau()
+        varK[lastInnerKidx(curr.order)], propK = createK()
+    end
+    prop = propT * propK
 
+    newAbsWeight = abs(eval(newOrder))
+    R = prop * newAbsWeight * ReWeight[newOrder] / curr.absWeight / ReWeight[curr.order]
+    Proposed[INCREASE_ORDER][curr.order] += 1
+    if rand(rng) < R
+        Accepted[INCREASE_ORDER][curr.order] += 1
+        curr.order = newOrder
+        curr.absWeight = newAbsWeight
+        if curr.order == 0
+            curr.extTidx = newextTidx
+            curr.extKidx = newextKidx
+        end
+    end
+end
+
+function decreaseOrder()
+    curr.order == 0 && return
+    newOrder = curr.order - 1
+    if newOrder == 0
+        propT = removeExtIdx(TauGridSize)
+        propK = removeExtIdx(KGridSize)
+    else
+        propT = removeTau()
+        propK = removeK(varK[lastInnerKidx(curr.order)])
+    end
+    prop = propT * propK
+    newAbsWeight = abs(eval(newOrder))
+    R = prop * newAbsWeight * ReWeight[newOrder] / curr.absWeight / ReWeight[curr.order]
+    Proposed[DECREASE_ORDER][curr.order] += 1
+    if rand(rng) < R
+        Accepted[DECREASE_ORDER][curr.order] += 1
+        curr.order = newOrder
+        curr.absWeight = newAbsWeight
     end
 end
 
 function changeTau()
-    Proposed[CHANGE_TAU, curr.order + 1] += 1
-    Accepted[CHANGE_TAU, curr.order + 1] += 1
+    # Proposed[CHANGE_TAU, curr.order + 1] += 1
+    # Accepted[CHANGE_TAU, curr.order + 1] += 1
     return
 end
 
@@ -132,7 +162,7 @@ end
 
 # newTau, Prop
 @inline createTau() = rand(rng) * Beta, Beta
-@inline removeTau(oldTau) = 1.0 / Beta
+@inline removeTau() = 1.0 / Beta
 @inline function shiftTau(oldTau)
     x = rand(rng)
     newTau = 0.0
@@ -155,11 +185,11 @@ end
     return newTau, prop
 end
 
-@inline function createK(oldK)
+@inline function createK()
     dK = Kf / 2.0
-    Kamp = Kf + (rand(rng) - 0.5) * 2.0 * dK
-    Kamp <= 0.0 && return oldK, 0.0
     newK = Mom()
+    Kamp = Kf + (rand(rng) - 0.5) * 2.0 * dK
+    Kamp <= 0.0 && return newK, 0.0
     prop = 0.0
     # Kf-dK<Kamp<Kf+dK 
     ϕ = 2.0 * pi * rand(rng)
@@ -227,9 +257,9 @@ function printStatus()
             @printf(
                 "  Order%2d:   %12.6f %12.6f %12.6f\n",
                 o,
-                Proposed[i, o + 1],
-                Accepted[i, o + 1],
-                Accepted[i, o + 1] / Proposed[i, o + 1]
+                Proposed[i, o+1],
+                Accepted[i, o+1],
+                Accepted[i, o+1] / Proposed[i, o+1]
             )
         end
         println(bar)

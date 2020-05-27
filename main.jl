@@ -72,13 +72,15 @@ for block in ProgressBars.ProgressBar(1:TotalBlock)
     for i = 1:1000_000
         Curr.step += 1
         x = rand(Curr.rng)
-        if x < 1.0 / 5.0
-            Markov.changeOrder()
-        elseif x < 2.0 / 5.0
+        if x < 1.0 / 6.0
+            Markov.increaseOrder()
+        elseif x < 2.0 / 6.0
+            Markov.decreaseOrder()
+        elseif x < 3.0 / 6.0
             Markov.changeK()
-        elseif x < 3.0 / 5.0
+        elseif x < 4.0 / 6.0
             Markov.changeTau()
-        elseif x < 4.0 / 5.0
+        elseif x < 5.0 / 6.0
             Markov.changeExtK()
         else
             Markov.changeExtTau()

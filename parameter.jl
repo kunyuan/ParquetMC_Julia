@@ -51,13 +51,14 @@ function Counter()
 end
 
 @inline function lastInnerTidx(order)
-    if DiagType == SIGMA || DiagType == DELTA
-        return order - 1
-    elseif DiagType == POLAR
-        return order
-    else
-        return order + 1 # GAMMA
-    end
+    return order
+    # if DiagType == SIGMA || DiagType == DELTA
+    #     return order - 1
+    # elseif DiagType == POLAR
+    #     return order
+    # else
+    #     return order + 1 # GAMMA
+    # end
 end
 
 @inline function firstInnerKidx()
