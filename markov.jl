@@ -6,7 +6,7 @@ include("diag/polar.jl")
 include("diag/vertex4_test.jl")
 include("observable.jl")
 include("utility/utility.jl")
-using Random, StaticArrays, Printf
+using Random, StaticArrays, Printf, Dates
 import .Vertex4, .Ver4Test, .Polar
 const UpdateNum = 6
 const INCREASE_ORDER, DECREASE_ORDER, CHANGE_EXTTAU, CHANGE_EXTK, CHANGE_TAU, CHANGE_K =
@@ -253,7 +253,8 @@ const bar = "-------------------------------------------------------------------
 function printStatus()
     # Var.counter += 1
     println(barbar)
-    println("Step:", curr.step)
+    printstyled(Dates.now(), color = :yellow)
+    println("\nStep:", curr.step)
     println(bar)
     for i = 1:UpdateNum
         @printf("%-12s %12s %12s %12s\n", Name[i], "Proposed", "Accepted", "Ratio  ")
@@ -269,6 +270,7 @@ function printStatus()
         println(bar)
     end
     println(progressBar(round(curr.step / 1000_000, digits = 2), TotalBlock))
+    println()
 end
 
 end
