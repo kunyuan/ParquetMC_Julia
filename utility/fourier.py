@@ -73,6 +73,7 @@ class fourier:
 
     def naiveT2W(self, dataT):
         """do fourier transformation on the last axis"""
+        print dataT.shape
         assert dataT.shape[-1] == self.TauSize, "The Tau axis must have {0} elements.".format(
             self.TauSize)
 

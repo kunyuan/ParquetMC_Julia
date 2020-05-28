@@ -17,6 +17,7 @@ println(size(Data[1][1, 1, :]))
 
 for o in 1:Order
     yList = [Fourier.naiveT2W(PyCall.PyReverseDims(d[:, :, o])) for d in Data]
+    # yList = [Fourier.naiveT2W(d[:, :, o]) for d in Data]
     polar, err = statis(yList, Norm)
     # polar, err = [], []
     # for (idx, k) in enumerate(MomGrid)
