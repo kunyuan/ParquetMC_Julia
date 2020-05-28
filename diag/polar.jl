@@ -12,12 +12,12 @@ const varT = Main.Curr.T
 struct Polarization
     order::Int
     ver4::Ver4
-    G::Vector{Green}
+    G::MVector{4,Green}
     Gidx::Vector{NTuple{4,Int}}
 
     function Polarization(order::Int)
         # order<=1 should never be used in actual evaluation
-        @assert InterTauNum(order) + 1 < LastTidx "More Tau variables are needed!"
+        @assert lastInnerTidx(order) + 1 < LastTidx "More Tau variables are needed!"
 
         ver4 = Ver4(
             0,
@@ -30,10 +30,10 @@ struct Polarization
 
         polar = new(order, ver4, [Green() for i = 1:4], [])
         for t in ver4.Tpair
-            inL = Vertex4.addTidx(G[INL], (1, t[INL]))
-            outL = Vertex4.addTidx(G[OUTL], (t[OUTL], 1))
-            inR = Vertex4.addTidx(G[INR], (LastTidx, t[INR]))
-            outR = Vertex4.addTidx(G[OUTR], (t[OUTR], LastTidx))
+            inL = Vertex4.addTidx(polar.G[INL], (1, t[INL]))
+            outL = Vertex4.addTidx(polar.G[OUTL], (t[OUTL], 1))
+            inR = Vertex4.addTidx(polar.G[INR], (LastTidx, t[INR]))
+            outR = Vertex4.addTidx(polar.G[OUTR], (t[OUTR], LastTidx))
             push!(polar.Gidx, (inL, outL, inR, outR))
         end
 
@@ -75,5 +75,4 @@ function eval(polar::Polarization)
     return w * PhaseFactor^2
 end
 
-export Polar, eval
 end

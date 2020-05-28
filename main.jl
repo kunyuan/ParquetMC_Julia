@@ -39,14 +39,15 @@ mutable struct State
         curr.K[8] = [0.0, Kf, 0.0]
         curr.K[9] = [0.0, Kf, 0.0]
         if DiagType == GAMMA
-            kL = [Kf, 0.0, 0.0]
+            kL, kR = zero(Mom), zero(Mom)
+            kL[1] = Kf
             curr.K[OUTL] = curr.K[INL] = kL[1:DIM]
             θ = acos(Grid.angle.grid[curr.extAngidx])
-            kR = [Kf * cos(θ), Kf * sin(θ), 0.0]
+            kR[1], kR[2] = Kf * cos(θ), Kf * sin(θ)
             curr.K[OUTR] = curr.K[INR] = kR[1:DIM]
         else
-            k = [Grid.K.grid[curr.extK], 0.0, 0.0]
-            curr.K[1] = k[1:DIM]
+            curr.K[1] = zero(Mom)
+            curr.K[1][1] = Grid.K.grid[curr.extKidx]
         end
         return curr
     end
@@ -63,7 +64,7 @@ import BenchmarkTools: @btime
 for _order = 1:Order
     println("Benchmark Order $_order")
     @btime Markov.eval(o) samples = 1 evals = 100 setup = (o = $_order)
-    println(sum(Markov.ver4[_order].weight))
+    # println(sum(Markov.ver4[_order].weight))
 end
 
 println("Start Simulation ...")

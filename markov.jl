@@ -29,10 +29,13 @@ const varT = Main.Curr.T
 
 const ver4 = Vector{Vertex4.Ver4}(undef, 0)
 const oneBody = Observable.OneBody()
+const polar = Vector{Polar.Polarization}(undef, 0)
 
 # function init(_counter, _rng)
 function init()
     #######  initialize MC variables  ################################
+    # println(oneBody.norm)
+    # println(typeof(oneBody))
     ###### initialized diagram trees #######################################
 
     if DiagType == GAMMA
@@ -44,13 +47,13 @@ function init()
         # Vertex4.visualize(vertex4[2])
 
     elseif DiagType == POLAR
-        global polar = Vector{Polar.Polarization}(undef, 0)
-        for o = 0:Order
+        for o = 1:Order
             push!(polar, Polar.Polarization(o))
         end
     else
         throw("Not implemented!")
     end
+
 end
 
 @fastmath function test()
@@ -62,7 +65,7 @@ end
 @fastmath function eval(order)
     order == 0 && return 1.0
     if DiagType == POLAR
-        return Polar[order].eval()
+        return Polar.eval(polar[order])
     elseif DiagType == GAMMA
         Vertex4.eval(ver4[order], varK[INL], varK[OUTL], varK[INR], varK[OUTR], 5, true)
         chanWeight = sum(ver4[order].weight)

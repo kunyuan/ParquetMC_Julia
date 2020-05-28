@@ -12,9 +12,8 @@ mutable struct OneBody
     # static::MArray{(Order, KGridSize),Float}
     estimator::MArray{Tuple{Order,KGridSize,TauGridSize},Float}
     function OneBody()
-        norm = 1.0e-10
-        phy = 1.0
         estimator = @MArray zeros(Float, Order, KGridSize, TauGridSize)
+        return new(1.0e-10, 1.0, estimator)
     end
 end
 
