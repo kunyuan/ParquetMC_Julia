@@ -28,13 +28,13 @@ const varK = Main.Curr.K
 const varT = Main.Curr.T
 
 const ver4 = Vector{Vertex4.Ver4}(undef, 0)
+const oneBody = Observable.OneBody()
 const polar = Vector{Polar.Polarization}(undef, 0)
 
 # function init(_counter, _rng)
 function init()
     #######  initialize MC variables  ################################
-    global oneBody = Observable.OneBody()
-    println(oneBody.norm)
+    # println(oneBody.norm)
     # println(typeof(oneBody))
     ###### initialized diagram trees #######################################
 
@@ -54,6 +54,7 @@ function init()
         throw("Not implemented!")
     end
 
+    curr.absWeight = Markov.eval(curr.order)
 end
 
 @fastmath function test()
@@ -77,12 +78,14 @@ end
 
 function measure()
     factor = 1.0 / curr.absWeight / ReWeight[curr.order + 1]
+    @assert isinf(factor) == false "factor is infinite at step $(curr.step)"
     if DiagType == POLAR || DiagType == SIGMA || DiagType == DELTA
         Observable.measure(oneBody, eval(curr.order), factor)
     end
 end
 
 function save()
+    println("Saving data to disk ...")
     if DiagType == POLAR || DiagType == SIGMA || DiagType == DELTA
         Observable.save(oneBody)
     end
@@ -95,20 +98,23 @@ end
 function increaseOrder()
     curr.order == Order && return # already at the highest order
     newOrder = curr.order + 1
+    prop = 1.0
     if curr.order == 0
-        # create new external Tau and K
+        # create new external Tau
         newextTidx, propT = createExtIdx(TauGridSize)
         varT[LastTidx] = Grid.tau.grid[curr.extTidx]
         newextKidx, propK = createExtIdx(KGridSize)
         varK[1][1] = Grid.K.grid[curr.extKidx]
+        prop = propT * propK
     else
-        # create new internal Tau and K
-        varT[lastInnerTidx(curr.order)], propT = createTau()
-        varK[lastInnerKidx(curr.order)], propK = createK()
+        # create new internal Tau
+        varT[lastInnerTidx(newOrder)], prop = createTau()
     end
-    prop = propT * propK
+    varK[lastInnerKidx(newOrder)], propK2 = createK()
+    prop *= propK2
 
     newAbsWeight = abs(eval(newOrder))
+    # println(prop, ", ", newAbsWeight)
     R = prop * newAbsWeight * ReWeight[newOrder + 1] / curr.absWeight / ReWeight[curr.order + 1]
     Proposed[INCREASE_ORDER, curr.order + 1] += 1
     if rand(rng) < R
@@ -125,16 +131,16 @@ end
 function decreaseOrder()
     curr.order == 0 && return
     newOrder = curr.order - 1
+    prop = 1.0
     if newOrder == 0
-        # remove external Tau and K
-        propT = removeExtIdx(TauGridSize)
-        propK = removeExtIdx(KGridSize)
+        # remove external Tau 
+        prop *= removeExtIdx(TauGridSize)
+        prop *= removeExtIdx(KGridSize)
     else
-        # remove internal Tau and K
-        propT = removeTau()
-        propK = removeK(varK[lastInnerKidx(curr.order)])
+        # remove internal Tau
+        prop *= removeTau()
     end
-    prop = propT * propK
+    prop *= removeK(varK[lastInnerKidx(curr.order)])
     newAbsWeight = abs(eval(newOrder))
     R = prop * newAbsWeight * ReWeight[newOrder + 1] / curr.absWeight / ReWeight[curr.order + 1]
     Proposed[DECREASE_ORDER, curr.order + 1] += 1
@@ -256,14 +262,14 @@ const bar = "-------------------------------------------------------------------
 function printStatus()
     # Var.counter += 1
     println(barbar)
-    printstyled(Dates.now(), color = :yellow)
+    printstyled(Dates.now(), color = :green)
     println("\nStep:", curr.step)
     println(bar)
     for i = 1:UpdateNum
-        @printf("%-12s %12s %12s %12s\n", Name[i], "Proposed", "Accepted", "Ratio  ")
-        for o = 1:Order
+        @printf("%-14s %12s %12s %12s\n", Name[i], "Proposed", "Accepted", "Ratio  ")
+        for o = 0:Order
             @printf(
-                "  Order%2d:   %12.6f %12.6f %12.6f\n",
+                "  Order%2d:     %12.0f %12.0f %12.6f\n",
                 o,
                 Proposed[i, o + 1],
                 Accepted[i, o + 1],

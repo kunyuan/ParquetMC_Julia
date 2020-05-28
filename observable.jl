@@ -3,6 +3,7 @@ module Observable
 include("parameter.jl")
 include("grid.jl")
 using StaticArrays: MArray
+using JLD2, FileIO
 
 const curr = Main.Curr
 
@@ -10,37 +11,24 @@ mutable struct OneBody
     norm::Float # normalization 
     phy::Float # the physcial weight of the normalization diagrams
     # static::MArray{(Order, KGridSize),Float}
-    # estimator::MArray{Tuple{Order,KGridSize,TauGridSize},Float}
-    estimator::Array{Float,3} # order, kgrid, taugrid
-    function OneBody()
-        estimator = zeros(Float, Order, KGridSize, TauGridSize)
-        return new(1.0e-10, 1.0, estimator)
-    end
+    data::Array{Float,3} # order, kgrid, taugrid
+    OneBody() = new(1.0e-10, 1.0, zeros(Float, Order, KGridSize, TauGridSize))
 end
 
 function measure(obs::OneBody, weight, factor)
     if curr.order == 0
         obs.norm += weight * factor
     else
-        obs[curr.order, curr.kidx, curr.tidx] += weight * factor
+        obs.data[curr.order, curr.extKidx, curr.extTidx] += weight * factor
     end
 end
 
 function save(obs::OneBody)
-    filename = "$(name())_pid$(curr.PID).dat"
-    open(filename, "w") do io
-        write(io, "# Counter: $(curr.step)\n")
-        write(io, " # Norm: $(obs.norm)\n")
-        write(io, " # KGrid: $(Grid.K.grid)\n")
-        write(io, " # TauGrid: $Grid.tau.grid)\n")
-        for order = 1:Order
-            for qidx = 1:KGridSize
-                for tidx = 1:TauGridSize
-                    write(io, obs.estimator[order, qidx, tidx], " ")
-                end
-            end
-        end
-    end
+    filename = "$(name())_pid$(curr.PID).jld2"
+    data = Dict("PID" => curr.PID, "Norm" => obs.norm, "Data" => obs.data / obs.norm * obs.phy)
+
+    # FileIO.save(filename, data, compress = true)
+    FileIO.save(filename, data)
 end
 
 function name()

@@ -1,11 +1,11 @@
 const GAMMA, SIGMA, POLAR, DELTA = 1, 2, 3, 4
 ################ Global parameters  ##################################
-# const DiagType = POLAR
-const DiagType = GAMMA
+const DiagType = POLAR
+# const DiagType = GAMMA
 const Order = 1
 const TotalBlock = 101
 const beta, Rs, Mass2, Lambda, maxK = 40.0, 1.0, 0.0, 1.0, 3.0
-const ReWeight = [1.0, 3.0, 30.0, 1.0, 0.2, 0.1, 0.01]
+const ReWeight = [1.0, 0.1, 30.0, 1.0, 0.2, 0.1, 0.01]
 const DIM, SPIN = 3, 2
 const (BoldG, BoldVer4) = true, true
 const TauGridSize, KGridSize, AngGridSize = 128, 64, 64

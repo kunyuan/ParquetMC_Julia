@@ -3,6 +3,7 @@ import os
 import sys
 import re
 import glob
+import h5py
 import numpy as np
 from color import *
 
@@ -109,7 +110,6 @@ def Estimate(Data, Weights):
 
 
 def LoadFile(Folder, FileName, shape=None):
-    Step = []
     Norm = []
     Data = []
     Grid = {}
@@ -118,30 +118,21 @@ def LoadFile(Folder, FileName, shape=None):
         if re.search(FileName, f):
             print "Loading ", f
             try:
-                with open(f, "r") as file:
-                    Step.append(int(file.readline().split(":")[1]))
-                    Norm.append(float(file.readline().split(":")[1]))
-                    while True:
-                        g = file.readline().split(":")
-                        if g[0].find("Grid") != -1:
-                            key = g[0].strip(" #")
-                            Grid[key] = np.fromstring(g[1], sep=' ')
-                        else:
-                            break
-
-                assert len(Norm) == len(Data) + \
-                    1, "size of Data and Norm must be the same!"
-
-                if shape == None:
-                    Data.append(np.loadtxt(f))
-                else:
-                    Data.append(np.loadtxt(f).reshape(shape))
+                with h5py.File(f) as f:
+                    Norm.append(f["Norm"])
+                    if "KGrid" in f.keys():
+                        Grid["KGrid"] = f["KGrid"]
+                    if "TauGrid" in f.keys():
+                        Grid["TauGrid"] = f["TauGrid"]
+                    if "AngleGrid" in f.keys():
+                        Grid["AngleGrid"] = f["AngleGrid"]
+                    Data.append(f["Data"])
 
             except Exception as e:
                 print "Failed to load {0}".format(f)
                 print str(e)
 
-    return Data, Norm, Step, Grid
+    return Data, Norm, Grid
 
 
 def ErrorPlot(p, x, d, color='k', marker='s', label=None, size=4, shift=False):

@@ -6,9 +6,16 @@ using Random
 
 @assert length(ARGS) >= 1 "Parameters PID, seed are expected!"
 PID = parse(Int, ARGS[1])
-RNG = length(ARGS) > 1 ? MersenneTwister(parse(Int, ARGS[2])) : MersenneTwister()
+# RNG = length(ARGS) > 1 ? MersenneTwister(parse(Int, ARGS[2])) : MersenneTwister()
+seed = parse(Int, ARGS[2])
+RNG = MersenneTwister(seed)
+
+printstyled("Rs: $Rs, kF: $Kf, EF: $Ef, β: $Beta, T/T_F: $(round(1.0 / Beta / Ef, digits = 4))\n", color = :green)
+printstyled("Seed: $seed, TotalBlock: $TotalBlock\n", color = :green)
+
 
 mutable struct State
+    PID::Int
     step::Int
     rng::MersenneTwister
     order::Int
@@ -19,25 +26,25 @@ mutable struct State
     absWeight::Float
     T::Vector{Float}
     K::Vector{Mom}
-    function State(rng)
+    function State(pid, rng)
         varT = rand(rng, LastTidx) .* Beta
         varK = rand(rng, Mom, LastKidx) .* Kf
         # rand!(rng, varK)
-        curr = new(0, rng, 0, 1, 1, 1, 1, 0.0, varT, varK)
+        curr = new(pid, 0, rng, 0, 1, 1, 1, 1, 0.0, varT, varK)
         curr.T[LastTidx] = Grid.tau.grid[curr.extTidx]
         curr.T[1] = 0.0
 
-        curr.T[2] = Beta / 2.0
-        curr.T[3] = Beta / 3.0
-        curr.T[4] = Beta / 4.0
-        curr.T[5] = Beta / 5.0
-        curr.T[6] = Beta / 6.0
+        # curr.T[2] = Beta / 2.0
+        # curr.T[3] = Beta / 3.0
+        # curr.T[4] = Beta / 4.0
+        # curr.T[5] = Beta / 5.0
+        # curr.T[6] = Beta / 6.0
 
-        curr.K[5] = [0.0, Kf, 0.0]
-        curr.K[6] = [0.0, Kf, 0.0]
-        curr.K[7] = [0.0, Kf, 0.0]
-        curr.K[8] = [0.0, Kf, 0.0]
-        curr.K[9] = [0.0, Kf, 0.0]
+        # curr.K[5] = [0.0, Kf, 0.0]
+        # curr.K[6] = [0.0, Kf, 0.0]
+        # curr.K[7] = [0.0, Kf, 0.0]
+        # curr.K[8] = [0.0, Kf, 0.0]
+        # curr.K[9] = [0.0, Kf, 0.0]
         if DiagType == GAMMA
             kL, kR = zero(Mom), zero(Mom)
             kL[1] = Kf
@@ -53,7 +60,7 @@ mutable struct State
     end
 end
 
-const Curr = State(RNG)
+const Curr = State(PID, RNG)
 
 include("markov.jl")
 Markov.init()
