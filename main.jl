@@ -1,7 +1,8 @@
 include("parameter.jl")
 include("grid.jl")
+include("utility/utility.jl")
 
-using Random, ProgressBars
+using Random
 
 @assert length(ARGS) >= 1 "Parameters PID, seed are expected!"
 PID = parse(Int, ARGS[1])
@@ -67,8 +68,13 @@ end
 
 println("Start Simulation ...")
 block = 0
-lasttime = time()
-for block in ProgressBars.ProgressBar(1:TotalBlock)
+
+printTimer = StopWatch(PrintTime, Markov.printStatus)
+saveTimer = StopWatch(SaveTime, Markov.save)
+reweightTimer = StopWatch(ReWeightTime, Markov.reweight)
+# messageTimer = StopWatch(MessageTime, Markov.save)
+
+for block in 1:TotalBlock
     for i = 1:1000_000
         Curr.step += 1
         x = rand(Curr.rng)
@@ -89,12 +95,9 @@ for block in ProgressBars.ProgressBar(1:TotalBlock)
         i % 8 == 0 && Markov.measure()
 
         if i % 1000 == 0
-            now = time()
-            duration = now - lasttime
-
-            duration > PrintTime && Markov.printStatus()
-            duration > SaveTime && Markov.save()
-            duration > ReWeightTime && Markov.reweight()
+            check(printTimer)
+            check(saveTimer)
+            check(reweightTimer)
         end
     end
 end

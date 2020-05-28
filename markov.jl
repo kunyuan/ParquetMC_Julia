@@ -5,6 +5,7 @@ include("diag/vertex4.jl")
 include("diag/polar.jl")
 include("diag/vertex4_test.jl")
 include("observable.jl")
+include("utility/utility.jl")
 using Random, StaticArrays, Printf
 import .Vertex4, .Ver4Test, .Polar
 const UpdateNum = 6
@@ -267,6 +268,7 @@ function printStatus()
         end
         println(bar)
     end
+    println(progressBar(round(curr.step / 1000_000, digits = 2), TotalBlock))
 end
 
 end
