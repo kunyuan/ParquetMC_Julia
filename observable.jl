@@ -10,9 +10,10 @@ mutable struct OneBody
     norm::Float # normalization 
     phy::Float # the physcial weight of the normalization diagrams
     # static::MArray{(Order, KGridSize),Float}
-    estimator::MArray{Tuple{Order,KGridSize,TauGridSize},Float}
+    # estimator::MArray{Tuple{Order,KGridSize,TauGridSize},Float}
+    estimator::Array{Float,3} # order, kgrid, taugrid
     function OneBody()
-        estimator = @MArray zeros(Float, Order, KGridSize, TauGridSize)
+        estimator = zeros(Float, Order, KGridSize, TauGridSize)
         return new(1.0e-10, 1.0, estimator)
     end
 end

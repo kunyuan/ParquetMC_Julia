@@ -54,6 +54,7 @@ mutable struct State
 end
 
 const Curr = State(RNG)
+
 include("markov.jl")
 Markov.init()
 

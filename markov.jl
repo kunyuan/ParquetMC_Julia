@@ -28,13 +28,13 @@ const varK = Main.Curr.K
 const varT = Main.Curr.T
 
 const ver4 = Vector{Vertex4.Ver4}(undef, 0)
-const oneBody = Observable.OneBody()
 const polar = Vector{Polar.Polarization}(undef, 0)
 
 # function init(_counter, _rng)
 function init()
     #######  initialize MC variables  ################################
-    # println(oneBody.norm)
+    global oneBody = Observable.OneBody()
+    println(oneBody.norm)
     # println(typeof(oneBody))
     ###### initialized diagram trees #######################################
 
