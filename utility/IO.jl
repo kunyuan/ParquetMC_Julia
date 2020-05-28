@@ -27,6 +27,6 @@ function statis(data, weight)
     var = sum((d - avg).^2 .* w / Z for (d, w) in zip(data, weight))
     # println(var)
     err = sqrt.(var / N)
-    return Measurements.measurement.(avg, err)
-    # return avg, var
+    # return Measurements.measurement.(avg, err)
+    return avg, err
 end

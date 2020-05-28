@@ -12,14 +12,14 @@ mutable struct OneBody
     phy::Float # the physcial weight of the normalization diagrams
     # static::MArray{(Order, KGridSize),Float}
     data::Array{Float,3} # order, kgrid, taugrid
-    OneBody() = new(1.0e-10, 1.0, zeros(Float, Order, KGridSize, TauGridSize))
+    OneBody() = new(1.0e-10, 1.0, zeros(Float,  TauGridSize, KGridSize, Order))
 end
 
 function measure(obs::OneBody, weight, factor)
     if curr.order == 0
         obs.norm += weight * factor
     else
-        obs.data[curr.order, curr.extKidx, curr.extTidx] += weight * factor
+        obs.data[curr.extTidx, curr.extKidx, curr.order] += weight * factor
     end
 end
 

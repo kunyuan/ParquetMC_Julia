@@ -101,9 +101,9 @@ function increaseOrder()
     prop = 1.0
     if curr.order == 0
         # create new external Tau
-        newextTidx, propT = createExtIdx(TauGridSize)
+        curr.extTidx, propT = createExtIdx(TauGridSize)
         varT[LastTidx] = Grid.tau.grid[curr.extTidx]
-        newextKidx, propK = createExtIdx(KGridSize)
+        curr.extKidx, propK = createExtIdx(KGridSize)
         varK[1][1] = Grid.K.grid[curr.extKidx]
         prop = propT * propK
     else
@@ -121,10 +121,6 @@ function increaseOrder()
         Accepted[INCREASE_ORDER, curr.order + 1] += 1
         curr.order = newOrder
         curr.absWeight = newAbsWeight
-        if curr.order == 0
-            curr.extTidx = newextTidx
-            curr.extKidx = newextKidx
-        end
     end
 end
 
