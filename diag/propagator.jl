@@ -9,12 +9,13 @@ include("../parameter.jl")
     if tau < 0.0
         tau += Beta
     end
+    @assert tau < Beta "tau must be [0.0, Beta)"
     Ek = squaredNorm(k)
     x = Beta * (Ek - Mu) * 0.5
     y = 2.0 * tau / Beta - 1.0
     if -100.0 < x < 100.0
         return s * exp(-x * y) / (2.0 * cosh(x))
-    elseif x > 100.0
+    elseif x >= 100.0
         return s * exp(-x * (y + 1.0))
     else
         return s * exp(x * (1.0 - y))

@@ -95,6 +95,9 @@ function reweight()
     return
 end
 
+@inline propose(name) = (Proposed[name, curr.order + 1] += 1)
+@inline accept(name) = (Accepted[name, curr.order + 1] += 1)
+
 function increaseOrder()
     curr.order == Order && return # already at the highest order
     newOrder = curr.order + 1
@@ -116,9 +119,9 @@ function increaseOrder()
     newAbsWeight = abs(eval(newOrder))
     # println(prop, ", ", newAbsWeight)
     R = prop * newAbsWeight * ReWeight[newOrder + 1] / curr.absWeight / ReWeight[curr.order + 1]
-    Proposed[INCREASE_ORDER, curr.order + 1] += 1
+    propose(INCREASE_ORDER)
     if rand(rng) < R
-        Accepted[INCREASE_ORDER, curr.order + 1] += 1
+        accept(INCREASE_ORDER)
         curr.order = newOrder
         curr.absWeight = newAbsWeight
     end
@@ -139,9 +142,9 @@ function decreaseOrder()
     prop *= removeK(varK[lastInnerKidx(curr.order)])
     newAbsWeight = abs(eval(newOrder))
     R = prop * newAbsWeight * ReWeight[newOrder + 1] / curr.absWeight / ReWeight[curr.order + 1]
-    Proposed[DECREASE_ORDER, curr.order + 1] += 1
+    propose(DECREASE_ORDER)
     if rand(rng) < R
-        Accepted[DECREASE_ORDER, curr.order + 1] += 1
+        accept(DECREASE_ORDER)
         curr.order = newOrder
         curr.absWeight = newAbsWeight
     end
@@ -165,7 +168,7 @@ function changeExtK()
     return
 end
 
-@inline createExtIdx(GridSize) = rand(rng, 1:GridSize), GridSize
+@inline createExtIdx(GridSize) = rand(rng, 1:GridSize), Float(GridSize)
 @inline removeExtIdx(GridSize) = 1.0 / GridSize
 @inline shiftExtIdx(GridSize) = rand(rng, 1:GridSize), 1.0
 
@@ -196,28 +199,24 @@ end
 
 @inline function createK()
     dK = Kf / 2.0
-    newK = zero(Mom)
     Kamp = Kf + (rand(rng) - 0.5) * 2.0 * dK
     Kamp <= 0.0 && return newK, 0.0
-    prop = 0.0
     # Kf-dK<Kamp<Kf+dK 
-    ϕ = 2.0 * pi * rand(rng)
+    ϕ = 2π * rand(rng)
     if DIM == 3
-        θ = pi * rand(rng)
-        newK[1] = Kamp * cos(ϕ) * sin(θ)
-        newK[2] = Kamp * sin(ϕ) * sin(θ)
-        newK[3] = Kamp * cos(θ)
-        prop = (2.0 * dK) * (2.0 * pi) * pi * (sin(θ) * Kamp^2)
+        θ = π * rand(rng)
+        newK = Kamp .* Mom(cos(ϕ) * sin(θ), sin(ϕ) * sin(θ), cos(θ))
+        prop = 2dK * 2π * π * (sin(θ) * Kamp^2)
         # prop density of KAmp in [Kf-dK, Kf+dK), prop density of Phi
         # prop density of Theta, Jacobian
+        return newK, prop
     else
         # DIM==2
-        newK[1] = Kamp * cos(θ)
-        newK[2] = Kamp * sin(θ)
-        prop = (2.0 * dK) * (2.0 * pi) * (Kamp)
+        newK = Kamp .* Mom(cos(θ), sin(θ))
+        prop = 2dK * 2π * Kamp
         # prop density of KAmp in [Kf-dK, Kf+dK), prop density of Phi, Jacobian
+        return newK, prop
     end
-    return newK, prop
 end
 
 @inline function removeK(oldK)
@@ -226,14 +225,11 @@ end
     (Kamp < Kf - dK || Kamp > Kf + dK) && return 0.0
     if DIM == 3
         sinTheta = sqrt(oldK[1]^2 + oldK[2]^2) / Kamp
-        if sinTheta > 1.0e-15
-            return 1.0 / (2.0 * dK * 2.0 * pi^2 * sinTheta * Kamp^2)
-        else
-            return 0.0
-        end
+        sinTheta < 1.0e-15  && return 0.0
+        return 1.0 / (2dK * 2π * π * sinTheta * Kamp^2)
     else
         # DIM==2
-        return 1.0 / (2.0 * dK * 2.0 * pi * Kamp)
+        return 1.0 / (2dK * 2π * Kamp)
     end
 end
 

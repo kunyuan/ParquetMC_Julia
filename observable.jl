@@ -19,6 +19,7 @@ function measure(obs::OneBody, weight, factor)
     if curr.order == 0
         obs.norm += weight * factor
     else
+        # obs.data[curr.extTidx, curr.extKidx, curr.order] += weight * factor
         obs.data[curr.extTidx, curr.extKidx, curr.order] += weight * factor
     end
 end

@@ -100,6 +100,7 @@ for block in 1:TotalBlock
         else
             Markov.changeExtTau()
         end
+        # println(Curr.T[1], "-->", Curr.T[LastTidx])
 
         i % 8 == 0 && Markov.measure()
 
