@@ -13,8 +13,9 @@ plt = pyimport("matplotlib.pyplot")
 Fourier = F.fourier(Grid.tau.grid, [0.0, ], Beta)
 MomGrid = Grid.K.grid
 TauGrid = Grid.tau.grid
-println(size(Data[1][1, 1, :]))
-println(Data[1][3, 1, :])
+# println(size(Data[1][1, 1, :]))
+println(Data[1][1, :, 1])
+println(Data[1][2, :, 1])
 
 for o in 1:Order
     # yList = [Fourier.naiveT2W(PyCall.PyReverseDims(d[:, :, o])) for d in Data]
@@ -33,17 +34,18 @@ for o in 1:Order
     #     data .+= Data[1][it, :, 1] * (TauGrid[it + 1] - TauGrid[it])
     # end
     # push!(polar, data1)
-    # plt.errorbar(MomGrid / Kf, data, yerr = 0.0, fmt = "o-", capthick = 1, capsize = 4,
-    #                 label = "Order $o")
+    plt.errorbar(MomGrid / Kf, Data[1][3, :, 1], yerr = 0.0, fmt = "o-", capthick = 1, capsize = 4,
+                    label = "Order $o")
 end
 
 
-for k in 1:4:length(MomGrid)
-    data = [d[:, k, 1] for d in Data]
-    y, err = statis(data, Norm)
-    plt.errorbar(TauGrid, y, yerr = err, fmt = "o-", capthick = 1, capsize = 4,
-                    label = "K $(MomGrid[k] / Kf)")
-end
+# for k in 1:4:length(MomGrid)
+#     data = [d[:, k, 1] for d in Data]
+#     y, err = statis(data, Norm)
+#     plt.errorbar(TauGrid, y, yerr = err, fmt = "o-", capthick = 1, capsize = 4,
+#                     label = "K $(MomGrid[k] / Kf)")
+# end
+
 # y, err = statis(Data, Norm)
 # println(polar[1, :, 1])
 # using PyPlot

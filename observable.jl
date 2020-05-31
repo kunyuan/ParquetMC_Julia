@@ -16,6 +16,7 @@ mutable struct OneBody
 end
 
 function measure(obs::OneBody, weight, factor)
+    # @assert isapprox(curr.T[LastTidx], Grid.tau.grid[curr.extTidx]) "Not good"
     if curr.order == 0
         obs.norm += weight * factor
     else
