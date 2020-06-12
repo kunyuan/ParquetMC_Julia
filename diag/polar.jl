@@ -2,10 +2,12 @@ module Polar
 include("../parameter.jl")
 include("vertex4.jl")
 include("propagator.jl")
+include("../grid.jl")
 
 using .Vertex4: Green, Ver4
 using .Propagator: green
 
+const curr = Main.Curr
 const varK = Main.Curr.K
 const varT = Main.Curr.T
 
@@ -53,11 +55,19 @@ function eval(polar::Polarization)
         return 1.0
     elseif polar.order == 1
         Tau = varT[LastTidx] - varT[1]
+        @assert 0.0 < Tau < Beta "t out of range"
+
+        @assert abs(Grid.K.grid[curr.extKidx] - curr.K[1][1]) < 1.0e-15 "ExtK doesn't match!"
+        @assert abs(Grid.tau.grid[curr.extTidx] - curr.T[LastTidx]) < 1.0e-15 "ExtT doesn't match! $(Grid.tau.grid[curr.extTidx]) vs $(curr.T[LastTidx])"
+        @assert 0 < curr.extKidx <= KGridSize "K out of range"
+        @assert 0 < curr.extTidx <= TauGridSize "Tau out of range"
+
         # Tau = 1.0e-6
         # println(varT[LastTidx])
         # println(norm(varK[1]), ", ", norm(varK[2]))
         # println(varK[1])
-        gWeight = green(Tau, varK[2]) * green(-Tau, varK[2] + varK[1])
+        # gWeight = green(Tau, varK[2]) * green(-Tau, varK[2] + varK[1])
+        gWeight = green(Tau, varK[2]) * green(-Tau, varK[2] + Mom(Kf, 0.0, 0.0))
         # gWeight = green(Tau, varK[2]) * green(-Tau, varK[2])
         # @assert isinf(gWeight) == false "Green's fucntion is inf at step $(Main.Curr.step)"
         # println(gWeight)

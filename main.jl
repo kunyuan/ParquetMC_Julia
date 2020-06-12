@@ -97,13 +97,13 @@ for block in 1:TotalBlock
         elseif x < 2.0 / 6.0
             Markov.decreaseOrder()
         elseif x < 3.0 / 6.0
-            Markov.changeK()
+            # Markov.changeK()
         elseif x < 4.0 / 6.0
             Markov.changeTau()
         elseif x < 5.0 / 6.0
-            Markov.changeExtK()
+            # Markov.changeExtK()
         else
-            Markov.changeExtTau()
+            # Markov.changeExtTau()
         end
         # println(Curr.T[1], "-->", Curr.T[LastTidx])
 

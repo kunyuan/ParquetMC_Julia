@@ -22,6 +22,8 @@ function measure(obs::OneBody, weight, factor)
     else
         @assert abs(Grid.K.grid[curr.extKidx] - curr.K[1][1]) < 1.0e-15 "ExtK doesn't match!"
         @assert abs(Grid.tau.grid[curr.extTidx] - curr.T[LastTidx]) < 1.0e-15 "ExtT doesn't match! $(Grid.tau.grid[curr.extTidx]) vs $(curr.T[LastTidx])"
+        @assert 0 < curr.extKidx <= KGridSize "K out of range"
+        @assert 0 < curr.extTidx <= TauGridSize "Tau out of range"
         obs.data[curr.extTidx, curr.extKidx, curr.order] += weight * factor
     end
 end
@@ -29,6 +31,11 @@ end
 function save(obs::OneBody)
     filename = "$(name())_pid$(curr.PID).jld2"
     data = Dict("PID" => curr.PID, "Norm" => obs.norm, "Data" => obs.data / obs.norm * obs.phy)
+
+    println("k=0: ", sum(obs.data[:, 1, 1]) / length(TauGridSize) * Beta / obs.norm)
+
+    ki = 15
+    println("k=$(Grid.K.grid[ki]): ", sum(obs.data[:, ki, 1]) / length(TauGridSize) * Beta / obs.norm)
 
     # println(obs.data[1,1,1], "norm:", obs.norm)
 

@@ -82,6 +82,7 @@ function measure()
     # println("$(curr.order), $(curr.absWeight), $(ReWeight[curr.order + 1])")
 
     @assert isinf(factor) == false "factor is infinite at step $(curr.step)"
+    @assert abs(curr.absWeight - abs(eval(curr.order))) < 1.0e-10 "weight is wrong!"
 
     if DiagType == POLAR || DiagType == SIGMA || DiagType == DELTA
         Observable.measure(oneBody, eval(curr.order), factor)
@@ -119,7 +120,9 @@ function increaseOrder()
         varT[lastInnerTidx(newOrder)], prop = createTau()
     end
     # newOrder == 1 && println(lastInnerKidx(newOrder))
+    # oldK = copy(varK[2])
     prop *= createK!(varK[lastInnerKidx(newOrder)])
+    # @assert norm(oldK) != norm(varK[2]) "K remains the same"
 
     newAbsWeight = abs(eval(newOrder))
     # println(prop, ", ", newAbsWeight)
@@ -179,7 +182,19 @@ function changeK()
 end
 
 function changeExtTau()
-    return
+    curr.order == 0 && return
+    oldTidx = curr.extTidx
+    curr.extTidx, prop = shiftExtIdx(TauGridSize)
+    varT[LastTidx] = Grid.tau.grid[curr.extTidx]
+    propose(CHANGE_EXTTAU)
+    newAbsWeight = abs(eval(curr.order))
+    if rand(rng) < prop * newAbsWeight / curr.absWeight
+        accept(CHANGE_EXTTAU)
+        curr.absWeight = newAbsWeight
+    else
+        curr.extTidx = oldTidx
+        varT[LastTidx] = Grid.tau.grid[curr.extTidx]
+    end
 end
 
 function changeExtK()
@@ -230,6 +245,11 @@ end
 end
 
 @inline function createK!(newK)
+    for i in 1:DIM
+        newK[i] = Kf * (rand(rng) - 0.5) * 2.0
+    end
+    return (2.0 * Kf)^DIM
+
     dK = Kf / 2.0
     Kamp = Kf + (rand(rng) - 0.5) * 2.0 * dK
     Kamp <= 0.0 && return 0.0
@@ -237,21 +257,35 @@ end
     ϕ = 2π * rand(rng)
     if DIM == 3
         θ = π * rand(rng)
-        newK .= Kamp .* Mom(cos(ϕ) * sin(θ), sin(ϕ) * sin(θ), cos(θ))
+        # newK .= Kamp .* Mom(cos(ϕ) * sin(θ), sin(ϕ) * sin(θ), cos(θ))
+        newK[1] = Kamp * cos(ϕ) * sin(θ)
+        newK[2] = Kamp * sin(ϕ) * sin(θ)
+        newK[3] = Kamp * cos(θ)
         return 2dK * 2π * π * (sin(θ) * Kamp^2)
         # prop density of KAmp in [Kf-dK, Kf+dK), prop density of Phi
         # prop density of Theta, Jacobian
     else  # DIM==2
-        newK .= Kamp .* Mom(cos(θ), sin(θ))
+        newK .= Kamp .* Mom(cos(ϕ), sin(ϕ))
         return 2dK * 2π * Kamp
         # prop density of KAmp in [Kf-dK, Kf+dK), prop density of Phi, Jacobian
     end
 end
 
 @inline function removeK(oldK)
+
+    for i in 1:DIM
+        if abs(oldK[i]) > Kf
+            return 0.0
+        end
+    end
+    return 1.0 / (2.0 * Kf)^DIM
+
     dK = Kf / 2.0
     Kamp = norm(oldK)
-    (Kamp < Kf - dK || Kamp > Kf + dK) && return 0.0
+    if !(Kf - dK < Kamp < Kf + dK)
+        return 0.0
+    end
+    # (Kamp < Kf - dK || Kamp > Kf + dK) && return 0.0
     if DIM == 3
         sinθ = sqrt(oldK[1]^2 + oldK[2]^2) / Kamp
         sinθ < 1.0e-15  && return 0.0
