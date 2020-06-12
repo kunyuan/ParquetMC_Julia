@@ -40,7 +40,7 @@ for o in 1:Order
     #     data .+= Data[1][it, :, 1] * (TauGrid[it + 1] - TauGrid[it])
     # end
     # push!(polar, data1)
-    plt.errorbar(MomGrid / Kf, polar, yerr = 0.0, fmt = "o-", capthick = 1, capsize = 4, label = "Order $o")
+    plt.errorbar(MomGrid / Kf, polar, yerr = err, fmt = "o-", capthick = 1, capsize = 4, label = "Order $o")
     # plt.errorbar(TauGrid, Data[1][:, 1, 1], yerr = 0.0, fmt = "o-", capthick = 1, capsize = 4,
                     # label = "Order $o")
 end

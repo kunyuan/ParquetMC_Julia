@@ -110,6 +110,7 @@ function increaseOrder()
         # create new external Tau
         curr.extTidx, propT = createExtIdx(TauGridSize)
         varT[LastTidx] = Grid.tau.grid[curr.extTidx]
+
         curr.extKidx, propK = createExtIdx(KGridSize)
         varK[1][1] = Grid.K.grid[curr.extKidx]
         prop = propT * propK
