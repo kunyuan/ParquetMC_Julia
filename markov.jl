@@ -161,7 +161,20 @@ function changeTau()
 end
 
 function changeK()
-    return
+    # return
+    curr.order == 0 && return
+    loopidx = rand(rng, firstInnerKidx():lastInnerKidx(curr.order))
+    oldK = copy(varK[loopidx])
+    prop = shiftK!(oldK, varK[loopidx])
+
+    propose(CHANGE_K)
+    newAbsWeight = abs(eval(curr.order))
+    if rand(rng) < prop * newAbsWeight / curr.absWeight
+        accept(CHANGE_K)
+        curr.absWeight = newAbsWeight
+    else
+        varK[loopidx] .= oldK
+    end
 end
 
 function changeExtTau()
@@ -169,7 +182,24 @@ function changeExtTau()
 end
 
 function changeExtK()
-    return
+    curr.order == 0 && return
+    oldKidx = curr.extKidx
+    prop = 1.0
+    if DiagType == POLAR
+        curr.extKidx, prop = shiftExtIdx(KGridSize)
+        varK[1][1] = Grid.K.grid[curr.extKidx]
+    else
+        return
+    end
+    propose(CHANGE_EXTK)
+    newAbsWeight = abs(eval(curr.order))
+    if rand(rng) < prop * newAbsWeight / curr.absWeight
+        accept(CHANGE_EXTK)
+        curr.absWeight = newAbsWeight
+    else
+        curr.extKidx = oldKidx
+        varK[1][1] = Grid.K.grid[curr.extKidx]
+    end
 end
 
 @inline createExtIdx(size) = rand(rng, 1:size), Float(size)
@@ -234,7 +264,7 @@ end
     x = rand(rng)
     if x < 1.0 / 3
         dK = Beta > 1.0 ? Kf / Beta * 3.0 : Kf
-        newK .= oldK .+ rand(rng, DIM) .* dK
+        newK .= oldK .+ (rand(rng, DIM) .- 0.5) .* dK
         return 1.0
     elseif x < 2.0 / 3
         λ = 1.5
