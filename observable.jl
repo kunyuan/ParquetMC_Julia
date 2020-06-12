@@ -20,7 +20,8 @@ function measure(obs::OneBody, weight, factor)
     if curr.order == 0
         obs.norm += weight * factor
     else
-        # obs.data[curr.extTidx, curr.extKidx, curr.order] += weight * factor
+        @assert abs(Grid.K.grid[curr.extKidx] - curr.K[1][1]) < 1.0e-15 "ExtK doesn't match!"
+        @assert abs(Grid.tau.grid[curr.extTidx] - curr.T[LastTidx]) < 1.0e-15 "ExtT doesn't match! $(Grid.tau.grid[curr.extTidx]) vs $(curr.T[LastTidx])"
         obs.data[curr.extTidx, curr.extKidx, curr.order] += weight * factor
     end
 end

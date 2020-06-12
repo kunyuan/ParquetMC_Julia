@@ -7,7 +7,7 @@ const TotalBlock = 101
 const beta, Rs, Mass2, Lambda, maxK = 40.0, 1.0, 0.0, 1.0, 3.0
 const ReWeight = [1.0, 0.1, 30.0, 1.0, 0.2, 0.1, 0.01]
 const DIM, SPIN = 3, 2
-const (BoldG, BoldVer4) = true, true
+const BoldG, BoldVer4 = true, true
 const TauGridSize, KGridSize, AngGridSize = 128, 64, 64
 const PrintTime, SaveTime, ReWeightTime, MessageTime, CollectTime = 5, 10, 30, 10, 10
 
@@ -24,7 +24,7 @@ const LastKidx = Order + 8
 
 ############ Global External Variable Grid #########################
 ########### Other constants  #####################################
-using StaticArrays
+using StaticArrays: MVector
 const Float = Float64
 const Mom = MVector{3,Float}
 const VerWeight = MVector{2,Float}
@@ -61,9 +61,7 @@ end
     end
 end
 
-@inline function lastInnerKidx(order)
-    return firstInnerKidx() + order - 1
-end
+@inline lastInnerKidx(order) = firstInnerKidx() + order - 1
 
 
 @inline squaredNorm(k) = DIM == 3 ? k[1]^2 + k[2]^2 + k[3]^2 : k[1]^2 + k[2]^2

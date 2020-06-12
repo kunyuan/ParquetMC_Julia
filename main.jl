@@ -3,6 +3,7 @@ include("grid.jl")
 include("utility/utility.jl")
 
 using Random
+using StaticArrays
 
 @assert length(ARGS) >= 1 "Parameters PID, seed are expected!"
 PID = parse(Int, ARGS[1])

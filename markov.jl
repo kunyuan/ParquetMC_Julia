@@ -77,9 +77,12 @@ end
 end
 
 function measure()
+
     factor = 1.0 / curr.absWeight / ReWeight[curr.order + 1]
     # println("$(curr.order), $(curr.absWeight), $(ReWeight[curr.order + 1])")
+
     @assert isinf(factor) == false "factor is infinite at step $(curr.step)"
+
     if DiagType == POLAR || DiagType == SIGMA || DiagType == DELTA
         Observable.measure(oneBody, eval(curr.order), factor)
     end
@@ -114,6 +117,7 @@ function increaseOrder()
         # create new internal Tau
         varT[lastInnerTidx(newOrder)], prop = createTau()
     end
+    # newOrder == 1 && println(lastInnerKidx(newOrder))
     prop *= createK!(varK[lastInnerKidx(newOrder)])
 
     newAbsWeight = abs(eval(newOrder))
@@ -168,9 +172,9 @@ function changeExtK()
     return
 end
 
-@inline createExtIdx(GridSize) = rand(rng, 1:GridSize), Float(GridSize)
-@inline removeExtIdx(GridSize) = 1.0 / GridSize
-@inline shiftExtIdx(GridSize) = rand(rng, 1:GridSize), 1.0
+@inline createExtIdx(size) = rand(rng, 1:size), Float(size)
+@inline removeExtIdx(size) = 1.0 / size
+@inline shiftExtIdx(size) = rand(rng, 1:size), 1.0
 
 # newTau, Prop
 @inline createTau() = rand(rng) * Beta, Beta

@@ -2,7 +2,7 @@ module Vertex4
 include("../parameter.jl")
 include("propagator.jl")
 using .Propagator: interaction, green, counterBubble
-using D3Trees
+using D3Trees, StaticArrays
 
 const ChanMap = [I, T, U, S, T, U]
 const SymFactor = [1.0, -1.0, 1.0, -0.5, 1.0, -1.0]
