@@ -245,10 +245,12 @@ end
 end
 
 @inline function createK!(newK)
-    for i in 1:DIM
-        newK[i] = Kf * (rand(rng) - 0.5) * 2.0
-    end
-    return (2.0 * Kf)^DIM
+    ############ Simple Way ########################
+    # for i in 1:DIM
+    #     newK[i] = Kf * (rand(rng) - 0.5) * 2.0
+    # end
+    # return (2.0 * Kf)^DIM
+    ################################################
 
     dK = Kf / 2.0
     Kamp = Kf + (rand(rng) - 0.5) * 2.0 * dK
@@ -272,13 +274,14 @@ end
 end
 
 @inline function removeK(oldK)
-
-    for i in 1:DIM
-        if abs(oldK[i]) > Kf
-            return 0.0
-        end
-    end
-    return 1.0 / (2.0 * Kf)^DIM
+    ############## Simple Way #########################
+    # for i in 1:DIM
+    #     if abs(oldK[i]) > Kf
+    #         return 0.0
+    #     end
+    # end
+    # return 1.0 / (2.0 * Kf)^DIM
+    ####################################################
 
     dK = Kf / 2.0
     Kamp = norm(oldK)
