@@ -48,7 +48,7 @@ function testOneLoopVer4(curr)
     testWeight = weight - cweight
 
     refweight = evalOneLoopVer4([T, TC])
-    @assert isapprox(testWeight, refweight, rtol = 1.0e-16) "\n$testWeight != $refweight\nGG: $gweight, GG_counter: $gweightbox\nLver: $Lver, Rver: $Rver"
+    @assert isapprox(testWeight, refweight, rtol = 1.0e-15) "\n$testWeight != $refweight\nGG: $gweight, GG_counter: $gweightbox\nLver: $Lver, Rver: $Rver"
 
     ### U and UC #####
     Ku = outR + K - inL
@@ -84,7 +84,7 @@ function testOneLoopVer4(curr)
     weight *= cos(2.0 * pi / Beta * dTau * 2.0)
 
     refweight = evalOneLoopVer4([S])
-    @assert isapprox(weight, refweight, rtol = 1.0e-16) "\n$weight != $refweight\nGG: $gweight, GG_counter: $gweightbox\nLver: $Lver, Rver: $Rver"
+    @assert isapprox(weight, refweight, rtol = 1.0e-15) "\n$weight != $refweight\nGG: $gweight, GG_counter: $gweightbox\nLver: $Lver, Rver: $Rver"
 end
 
 export testOneLoopVer4

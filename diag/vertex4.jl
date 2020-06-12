@@ -127,15 +127,15 @@ struct Ver4
     side::Int # right side vertex is always a full gamma4
     inBox::Bool
 
-    K::MVector{3,Mom}
-    G::MVector{4,Green}
+    K::SVector{3,Mom}
+    G::SVector{4,Green}
     Tpair::Vector{Tuple{Int,Int,Int,Int}}
     weight::Vector{VerWeight}
     bubble::Vector{Bubble{Ver4}}
 
     function Ver4(lvl, loopNum, chan, tidx, side, inbox, isfast = false)
-        g = @MVector [Green() for i = 1:4]
-        k = @MVector [zero(Mom) for i = 1:3]
+        g = @SVector [Green() for i = 1:4]
+        k = @SVector [zero(Mom) for i = 1:3]
         ver4 = new(lvl, loopNum, Set(chan), tidx, side, inbox, k, g, [], [], [])
         if loopNum <= 0
             # negative loopNum should never be used in evaluation
@@ -146,7 +146,7 @@ struct Ver4
         UST = [c for c in chan if c != I]
         II = [c for c in chan if c == I]
         for c in UST
-            for ol = 0:loopNum-1
+            for ol = 0:loopNum - 1
                 bubble = Bubble{Ver4}(ver4, c, ol)
                 if length(bubble.map) > 0
                     push!(ver4.bubble, bubble)
@@ -175,7 +175,9 @@ function eval(ver4::Ver4, KinL, KoutL, KinR, KoutR, Kidx::Int, fast = false)
     end
 
     # LoopNum>=1
-    ver4.weight .*= 0.0 # initialize all weights
+    for w in ver4.weight
+        w .= 0.0 # initialize all weights
+    end
     G = ver4.G
     K, Kt, Ku, Ks = (varK[Kidx], ver4.K[1], ver4.K[2], ver4.K[3])
     eval(G[1], K, varT)
@@ -216,9 +218,10 @@ function eval(ver4::Ver4, KinL, KoutL, KinR, KoutR, Kidx::Int, fast = false)
         end
 
         rN = length(b.Rver.weight)
+        gWeight = 0.0
         for (l, Lw) in enumerate(b.Lver.weight)
             for (r, Rw) in enumerate(b.Rver.weight)
-                map = b.map[(l-1)*rN+r]
+                map = b.map[(l - 1) * rN + r]
 
                 if ver4.inBox || c == TC || c == UC
                     gWeight = bubWeight * Factor

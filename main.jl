@@ -24,11 +24,14 @@ mutable struct State
     extKidx::Int
     extAngidx::Int
     absWeight::Float
-    T::Vector{Float}
-    K::Vector{Mom}
+    T::MVector{LastTidx,Float}
+    K::SVector{LastKidx,Mom}
+
     function State(pid, rng)
-        varT = rand(rng, LastTidx) .* Beta
-        varK = rand(rng, Mom, LastKidx) .* Kf
+        varT = @MVector [rand(rng) .* Beta for i in 1:LastTidx]
+        varK = @SVector [rand(rng, Mom) .* Kf  for i in 1:LastKidx]
+        # varT = rand(rng, LastTidx) .* Beta
+        # varK = rand(rng, Mom, LastKidx) .* Kf
         # rand!(rng, varK)
         curr = new(pid, 0, rng, 0, 1, 1, 1, 1, 0.0, varT, varK)
         curr.T[LastTidx] = Grid.tau.grid[curr.extTidx]
@@ -48,12 +51,12 @@ mutable struct State
         if DiagType == GAMMA
             kL, kR = zero(Mom), zero(Mom)
             kL[1] = Kf
-            curr.K[OUTL] = curr.K[INL] = kL[1:DIM]
+            curr.K[OUTL] .= curr.K[INL] .= kL
             θ = acos(Grid.angle.grid[curr.extAngidx])
-            kR[1], kR[2] = Kf * cos(θ), Kf * sin(θ)
-            curr.K[OUTR] = curr.K[INR] = kR[1:DIM]
+            kR[1:2] .= [cos(θ), sin(θ)] .* Kf
+            curr.K[OUTR] .= curr.K[INR] .= kR
         else
-            curr.K[1] = zero(Mom)
+            curr.K[1] .= zero(Mom)
             curr.K[1][1] = Grid.K.grid[curr.extKidx]
         end
         return curr
@@ -74,6 +77,8 @@ for _order = 1:Order
     @btime Markov.eval(o) samples = 1 evals = 100 setup = (o = $_order)
     # println(sum(Markov.ver4[_order].weight))
 end
+
+exit()
 
 println("Start Simulation ...")
 block = 0
