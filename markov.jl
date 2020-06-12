@@ -78,6 +78,7 @@ end
 
 function measure()
     factor = 1.0 / curr.absWeight / ReWeight[curr.order + 1]
+    # println("$(curr.order), $(curr.absWeight), $(ReWeight[curr.order + 1])")
     @assert isinf(factor) == false "factor is infinite at step $(curr.step)"
     if DiagType == POLAR || DiagType == SIGMA || DiagType == DELTA
         Observable.measure(oneBody, eval(curr.order), factor)
@@ -145,6 +146,7 @@ function decreaseOrder()
     if rand(rng) < R
         accept(DECREASE_ORDER)
         curr.order = newOrder
+        curr.absWeight = newAbsWeight
     end
 end
 

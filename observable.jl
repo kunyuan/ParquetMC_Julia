@@ -29,6 +29,8 @@ function save(obs::OneBody)
     filename = "$(name())_pid$(curr.PID).jld2"
     data = Dict("PID" => curr.PID, "Norm" => obs.norm, "Data" => obs.data / obs.norm * obs.phy)
 
+    # println(obs.data[1,1,1], "norm:", obs.norm)
+
     # FileIO.save(filename, data, compress = true)
     FileIO.save(filename, data)
 end

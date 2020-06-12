@@ -56,8 +56,8 @@ function eval(polar::Polarization)
         # println(varT[LastTidx])
         # println(norm(varK[1]), ", ", norm(varK[2]))
         gWeight = green(Tau, varK[2]) * green(-Tau, varK[2] - varK[1])
-        # gWeight = green(Tau, varK[2]) * green(-Tau, varK[2])
         # @assert isinf(gWeight) == false "Green's fucntion is inf at step $(Main.Curr.step)"
+        # println(gWeight)
         return -SPIN * gWeight * PhaseFactor
     end
 

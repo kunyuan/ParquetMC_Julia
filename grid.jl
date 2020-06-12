@@ -75,10 +75,13 @@ end
 const angle = Grid.UniformGrid(-1.0, 1.0, AngGridSize)
 
 # Tau Grid construction
-lambda = Beta / Ef / TauGridSize / 3.0
-c1 = Grid.Coeff([0.0, Beta / 2.0], [1.0, TauGridSize / 2 + 0.5], lambda, true)
-c2 = Grid.Coeff([Beta / 2.0, Beta], [TauGridSize / 2 - 0.5, TauGridSize], lambda, false)
-const tau = Grid.LogGrid([c1, c2], [Int(TauGridSize / 2) + 1, TauGridSize])
+# lambda = Beta / Ef / TauGridSize / 3.0
+# c1 = Grid.Coeff([0.0, Beta / 2.0], [1.0, TauGridSize / 2 + 0.5], lambda, true)
+# c2 = Grid.Coeff([Beta / 2.0, Beta], [TauGridSize / 2 - 0.5, TauGridSize], lambda, false)
+# const tau = Grid.LogGrid([c1, c2], [Int(TauGridSize / 2) + 1, TauGridSize])
+# tau.grid[1], tau.grid[end] = (1.0e-8, Beta - 1.0e-8)
+
+const tau = Grid.UniformGrid(0.0, Beta, TauGridSize)
 tau.grid[1], tau.grid[end] = (1.0e-8, Beta - 1.0e-8)
 
 # MomGrid construction

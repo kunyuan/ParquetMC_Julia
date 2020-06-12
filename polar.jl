@@ -14,7 +14,7 @@ plt = pyimport("matplotlib.pyplot")
 MomGrid = Grid.K.grid
 TauGrid = Grid.tau.grid
 # println(size(Data[1][1, 1, :]))
-# println(Data[1][1, :, 1])
+println(Data[1][1, :, 1])
 # println(Data[1][2, :, 1])
 
 for o in 1:Order
