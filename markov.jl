@@ -113,8 +113,7 @@ function increaseOrder()
         # create new internal Tau
         varT[lastInnerTidx(newOrder)], prop = createTau()
     end
-    varK[lastInnerKidx(newOrder)], propK2 = createK()
-    prop *= propK2
+    prop *= createK!(varK[lastInnerKidx(newOrder)])
 
     newAbsWeight = abs(eval(newOrder))
     # println(prop, ", ", newAbsWeight)
@@ -146,7 +145,6 @@ function decreaseOrder()
     if rand(rng) < R
         accept(DECREASE_ORDER)
         curr.order = newOrder
-        curr.absWeight = newAbsWeight
     end
 end
 
@@ -178,9 +176,8 @@ end
 @inline function shiftTau(oldTau)
     x = rand(rng)
     newTau = 0.0
-    prop = 1.0
     if x < 1.0 / 3
-        newTau = oldTau + 4 * Ef * (rand(rng) - 0.5), prop
+        newTau = oldTau + 4 * Ef * (rand(rng) - 0.5)
     elseif x < 2.0 / 3
         newTau = -oldTau
     else
@@ -191,31 +188,26 @@ end
         newTau += Beta
     elseif newTau > Beta
         newTau -= Beta
-    elseif newTau == 0.0 || newTau == 0.0
-        prop = 0.0
     end
-    return newTau, prop
+    return newTau, 1.0
 end
 
-@inline function createK()
+@inline function createK!(newK)
     dK = Kf / 2.0
     Kamp = Kf + (rand(rng) - 0.5) * 2.0 * dK
-    Kamp <= 0.0 && return newK, 0.0
+    Kamp <= 0.0 && return 0.0
     # Kf-dK<Kamp<Kf+dK 
     ϕ = 2π * rand(rng)
     if DIM == 3
         θ = π * rand(rng)
-        newK = Kamp .* Mom(cos(ϕ) * sin(θ), sin(ϕ) * sin(θ), cos(θ))
-        prop = 2dK * 2π * π * (sin(θ) * Kamp^2)
+        newK .= Kamp .* Mom(cos(ϕ) * sin(θ), sin(ϕ) * sin(θ), cos(θ))
+        return 2dK * 2π * π * (sin(θ) * Kamp^2)
         # prop density of KAmp in [Kf-dK, Kf+dK), prop density of Phi
         # prop density of Theta, Jacobian
-        return newK, prop
-    else
-        # DIM==2
-        newK = Kamp .* Mom(cos(θ), sin(θ))
-        prop = 2dK * 2π * Kamp
+    else  # DIM==2
+        newK .= Kamp .* Mom(cos(θ), sin(θ))
+        return 2dK * 2π * Kamp
         # prop density of KAmp in [Kf-dK, Kf+dK), prop density of Phi, Jacobian
-        return newK, prop
     end
 end
 
@@ -224,27 +216,28 @@ end
     Kamp = norm(oldK)
     (Kamp < Kf - dK || Kamp > Kf + dK) && return 0.0
     if DIM == 3
-        sinTheta = sqrt(oldK[1]^2 + oldK[2]^2) / Kamp
-        sinTheta < 1.0e-15  && return 0.0
-        return 1.0 / (2dK * 2π * π * sinTheta * Kamp^2)
-    else
-        # DIM==2
+        sinθ = sqrt(oldK[1]^2 + oldK[2]^2) / Kamp
+        sinθ < 1.0e-15  && return 0.0
+        return 1.0 / (2dK * 2π * π * sinθ * Kamp^2)
+    else  # DIM==2
         return 1.0 / (2dK * 2π * Kamp)
     end
 end
 
-@inline function shiftK(oldK)
+@inline function shiftK!(oldK, newK)
     x = rand(rng)
     if x < 1.0 / 3
         dK = Beta > 1.0 ? Kf / Beta * 3.0 : Kf
-        return oldK + rand(rng, DIM) * dK, 1.0
+        newK .= oldK .+ rand(rng, DIM) .* dK
+        return 1.0
     elseif x < 2.0 / 3
         λ = 1.5
         ratio = 1.0 / λ + rand(rng) * (λ - 1.0 / λ)
-        prop = (DIM == 2) ? 1.0 : ratio
-        return oldK * ratio, prop
+        newK .= oldK .* ratio
+        return (DIM == 2) ? 1.0 : ratio
     else
-        return -oldK, 1.0
+        newK .= oldK .* (-1.0)
+        return 1.0
     end
 end
 

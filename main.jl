@@ -77,8 +77,7 @@ for _order = 1:Order
     @btime Markov.eval(o) samples = 1 evals = 100 setup = (o = $_order)
     # println(sum(Markov.ver4[_order].weight))
 end
-
-exit()
+# exit()
 
 println("Start Simulation ...")
 block = 0

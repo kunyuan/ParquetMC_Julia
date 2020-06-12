@@ -1,8 +1,8 @@
 const GAMMA, SIGMA, POLAR, DELTA = 1, 2, 3, 4
 ################ Global parameters  ##################################
-#const DiagType = POLAR
-const DiagType = GAMMA
-const Order = 5
+const DiagType = POLAR
+#const DiagType = GAMMA
+const Order = 1
 const TotalBlock = 101
 const beta, Rs, Mass2, Lambda, maxK = 40.0, 1.0, 0.0, 1.0, 3.0
 const ReWeight = [1.0, 0.1, 30.0, 1.0, 0.2, 0.1, 0.01]
