@@ -6,6 +6,8 @@ include("diag/polar.jl")
 include("diag/vertex4_test.jl")
 include("observable.jl")
 include("utility/utility.jl")
+include("diag/propagator.jl")
+import .Propagator: green
 using Random, StaticArrays, Printf, Dates
 import .Vertex4, .Ver4Test, .Polar
 const UpdateNum = 6
@@ -63,23 +65,42 @@ end
     end
 end
 
-@fastmath function eval(order)
-    order == 0 && return 1.0
-    if DiagType == POLAR
-        return Polar.eval(polar[order])
-    elseif DiagType == GAMMA
-        Vertex4.eval(ver4[order], varK[INL], varK[OUTL], varK[INR], varK[OUTR], 5, true)
-        chanWeight = sum(ver4[order].weight)
-        return chanWeight[DI] + chanWeight[EX] / SPIN
+function eval(order)
+    if order == 0
+        return 1.0
     else
-        throw("Not implemented!")
+        Tau = varT[LastTidx] - varT[1]
+        @assert 0.0 < Tau < Beta "t out of range"
+        @assert abs(Grid.K.grid[curr.extKidx] - curr.K[1][1]) < 1.0e-15 "ExtK doesn't match!"
+        @assert abs(Grid.tau.grid[curr.extTidx] - curr.T[LastTidx]) < 1.0e-15 "ExtT doesn't match! $(Grid.tau.grid[curr.extTidx]) vs $(curr.T[LastTidx])"
+        @assert 0 < curr.extKidx <= KGridSize "K out of range"
+        @assert 0 < curr.extTidx <= TauGridSize "Tau out of range"
+        gWeight = green(Tau, varK[2]) * green(-Tau, varK[2] + varK[1])
+        return -SPIN * gWeight * PhaseFactor
     end
+        # return 
+    # order == 0 && return 1.0
+    # if DiagType == POLAR
+    #     return Polar.eval(polar[order])
+    # elseif DiagType == GAMMA
+    #     Vertex4.eval(ver4[order], varK[INL], varK[OUTL], varK[INR], varK[OUTR], 5, true)
+    #     chanWeight = sum(ver4[order].weight)
+    #     return chanWeight[DI] + chanWeight[EX] / SPIN
+    # else
+    #     throw("Not implemented!")
+    # end
 end
 
 function measure()
 
     factor = 1.0 / curr.absWeight / ReWeight[curr.order + 1]
     # println("$(curr.order), $(curr.absWeight), $(ReWeight[curr.order + 1])")
+
+    if curr.order == 1
+        Tau = curr.T[LastTidx]
+        weight = -green(Tau, curr.K[2]) * green(-Tau, curr.K[2] + curr.K[1]) * SPIN * PhaseFactor
+        @assert abs(weight - eval(curr.order)) < 1.0e-10 "weight wrong"
+    end
 
     @assert isinf(factor) == false "factor is infinite at step $(curr.step)"
     @assert abs(curr.absWeight - abs(eval(curr.order))) < 1.0e-10 "weight is wrong!"
@@ -109,19 +130,20 @@ function increaseOrder()
     prop = 1.0
     if curr.order == 0
         # create new external Tau
-        curr.extTidx, propT = createExtIdx(TauGridSize)
-        varT[LastTidx] = Grid.tau.grid[curr.extTidx]
+        # curr.extTidx, propT = createExtIdx(TauGridSize)
+        # varT[LastTidx] = Grid.tau.grid[curr.extTidx]
 
-        curr.extKidx, propK = createExtIdx(KGridSize)
-        varK[1][1] = Grid.K.grid[curr.extKidx]
-        prop = propT * propK
+        # curr.extKidx, propK = createExtIdx(KGridSize)
+        # varK[1][1] = Grid.K.grid[curr.extKidx]
+        # prop = propT * propK
     else
         # create new internal Tau
         varT[lastInnerTidx(newOrder)], prop = createTau()
     end
     # newOrder == 1 && println(lastInnerKidx(newOrder))
     # oldK = copy(varK[2])
-    prop *= createK!(varK[lastInnerKidx(newOrder)])
+    # prop *= createK!(varK[lastInnerKidx(newOrder)])
+    prop *= createK!(varK[2])
     # @assert norm(oldK) != norm(varK[2]) "K remains the same"
 
     newAbsWeight = abs(eval(newOrder))
@@ -141,13 +163,14 @@ function decreaseOrder()
     prop = 1.0
     if newOrder == 0
         # remove external Tau 
-        prop *= removeExtIdx(TauGridSize)
-        prop *= removeExtIdx(KGridSize)
+        # prop *= removeExtIdx(TauGridSize)
+        # prop *= removeExtIdx(KGridSize)
     else
         # remove internal Tau
         prop *= removeTau()
     end
-    prop *= removeK(varK[lastInnerKidx(curr.order)])
+    # prop *= removeK(varK[lastInnerKidx(curr.order)])
+    prop *= removeK(varK[2])
     newAbsWeight = abs(eval(newOrder))
     R = prop * newAbsWeight * ReWeight[newOrder + 1] / curr.absWeight / ReWeight[curr.order + 1]
     propose(DECREASE_ORDER)
@@ -182,7 +205,7 @@ function changeK()
 end
 
 function changeExtTau()
-    curr.order == 0 && return
+    # curr.order == 0 && return
     oldTidx = curr.extTidx
     curr.extTidx, prop = shiftExtIdx(TauGridSize)
     varT[LastTidx] = Grid.tau.grid[curr.extTidx]
@@ -198,7 +221,7 @@ function changeExtTau()
 end
 
 function changeExtK()
-    curr.order == 0 && return
+    # curr.order == 0 && return
     oldKidx = curr.extKidx
     prop = 1.0
     if DiagType == POLAR
@@ -302,7 +325,10 @@ end
     x = rand(rng)
     if x < 1.0 / 3
         dK = Beta > 1.0 ? Kf / Beta * 3.0 : Kf
-        newK .= oldK .+ (rand(rng, DIM) .- 0.5) .* dK
+        # newK .= oldK .+ (rand(rng, DIM) .- 0.5) .* dK
+        for i in 1:DIM
+            newK[i] = oldK[i] + (rand(rng) - 0.5) * dK
+        end
         return 1.0
     elseif x < 2.0 / 3
         λ = 1.5

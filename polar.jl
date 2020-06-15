@@ -19,6 +19,10 @@ println(Data[1][:, 1, 1])
 # println(Data[1][2, :, 1])
 println(length(TauGrid))
 
+# for ki in 1:KGridSize
+#     println("k=$(Grid.K.grid[ki]): ", sum(Data[1][:, ki, 1]) / length(TauGridSize) * Beta / obs.norm * obs.phy)
+# end
+
 for o in 1:Order
     # yList = [Fourier.naiveT2W(PyCall.PyReverseDims(d[:, :, o])) for d in Data]
     # yList = [Fourier.naiveT2W(d[:, :, o]) for d in Data]
@@ -28,25 +32,21 @@ for o in 1:Order
     
     for (idx, k) in enumerate(MomGrid)
         # data = [trapz(TauGrid, d[:, idx, 1]) for d in Data]
-        data = [sum(d[:, idx, 1]) / length(TauGrid) * Beta for d in Data]
+        # data = [sum(d[:, idx, 1]) / length(TauGrid) * Beta for d in Data]
+        data = [sum(d[:, idx, 1])  * Beta for d in Data]
         # println(data[1])
         y, e = statis(data, Norm)
         push!(polar, y)
         push!(err, e)
     end
 
-    # data = zeros(length(MomGrid))
-    # for it in 1:TauGridSize - 1
-    #     data .+= Data[1][it, :, 1] * (TauGrid[it + 1] - TauGrid[it])
-    # end
-    # push!(polar, data1)
-    # plt.errorbar(MomGrid / Kf, polar, yerr = err, fmt = "o-", capthick = 1, capsize = 4, label = "Order $o")
+    # plt.errorbar(MomGrid / Kf, polar, yerr = 0.0, fmt = "o-", capthick = 1, capsize = 4, label = "Order $o")
     # y = sum(Data[1][:, :, 1], dims = 1) * Beta / length(TauGrid)
     # println(length(y))
     # println(size(y))
     # plt.errorbar(MomGrid / Kf, y[1, :], yerr = 0.0, fmt = "o-", capthick = 1, capsize = 4, label = "Order $o")
 
-    y, e = statis([d[:, 1, 1] for d in Data], Norm)
+    y, e = statis([d[:, 20, 1] for d in Data], Norm)
     plt.errorbar(TauGrid, y, yerr = e, fmt = "o-", capthick = 1, capsize = 4,
                     label = "Order $o")
     # y, e = statis([d[1, :, 1] for d in Data], Norm)

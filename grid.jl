@@ -97,13 +97,16 @@ if DiagType == SIGMA
 else
     # Bosonic Grid
     @assert MaxK > 2.0 * Kf "MaxK must larger than 2Kf!"
-    kFi, twokFi = (floor(Int, KGridSize / 3), floor(Int, KGridSize / 3 * 2))
-    lambda = sqrt(Ef * Beta) / kFi
-    c1 = Grid.Coeff([0.0, Kf], [1.0, kFi + 1.0], lambda, true)
-    c2 = Grid.Coeff([Kf, 2.0 * Kf], [kFi, twokFi + 1.0], lambda, false)
-    c3 = Grid.Coeff([2.0 * Kf, MaxK], [twokFi, KGridSize], lambda, true)
-    const K = Grid.LogGrid([c1, c2, c3], [kFi, twokFi, KGridSize])
-    K.grid[1] = 1.0e-6
+    # kFi, twokFi = (floor(Int, KGridSize / 3), floor(Int, KGridSize / 3 * 2))
+    # lambda = sqrt(Ef * Beta) / kFi
+    # c1 = Grid.Coeff([0.0, Kf], [1.0, kFi + 1.0], lambda, true)
+    # c2 = Grid.Coeff([Kf, 2.0 * Kf], [kFi, twokFi + 1.0], lambda, false)
+    # c3 = Grid.Coeff([2.0 * Kf, MaxK], [twokFi, KGridSize], lambda, true)
+    # const K = Grid.LogGrid([c1, c2, c3], [kFi, twokFi, KGridSize])
+    # K.grid[1] = 1.0e-6
+
+    const K = Grid.UniformGrid(0.0, MaxK, KGridSize)
+    K.grid[1], K.grid[end] = (1.0e-8, MaxK)
 end
 
 export angle, tau, K

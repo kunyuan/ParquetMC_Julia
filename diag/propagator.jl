@@ -1,7 +1,7 @@
 module Propagator
 include("../parameter.jl")
 
-@inline function green(tau::Float, k::Mom, scale::Float = 0.0)
+@inline function green(tau, k::Mom, scale = 0.0)
     if tau == 0.0 
         tau = -1.0e-12
     end
@@ -9,7 +9,8 @@ include("../parameter.jl")
     if tau < 0.0
         tau += Beta
     end
-    # @assert tau < Beta "tau must be [0.0, Beta)"
+    # @assert 0.0<tau<Beta
+    @assert 0.0 < tau < Beta "tau must be (0.0, Beta)"
     Ek = squaredNorm(k) - Mu
     x = Beta * Ek * 0.5
     y = 2.0 * tau / Beta - 1.0
@@ -37,7 +38,7 @@ function interaction(
     kInR::Mom,
     kOutR::Mom,
     Boxed::Bool,
-    extQ::Real = -1.0,
+    extQ = -1.0,
 )
     weight = VerWeight(0.0, 0.0)
     qDi2 = squaredNorm(kInL - kOutL)

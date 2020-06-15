@@ -12,7 +12,7 @@ mutable struct OneBody
     phy::Float # the physcial weight of the normalization diagrams
     # static::MArray{(Order, KGridSize),Float}
     data::Array{Float,3} # order, kgrid, taugrid
-    OneBody() = new(1.0e-10, 1.0, zeros(Float,  TauGridSize, KGridSize, Order))
+    OneBody() = new(1.0e-10, KGridSize, zeros(Float,  TauGridSize, KGridSize, Order))
 end
 
 function measure(obs::OneBody, weight, factor)
@@ -32,10 +32,9 @@ function save(obs::OneBody)
     filename = "$(name())_pid$(curr.PID).jld2"
     data = Dict("PID" => curr.PID, "Norm" => obs.norm, "Data" => obs.data / obs.norm * obs.phy)
 
-    println("k=0: ", sum(obs.data[:, 1, 1]) / length(TauGridSize) * Beta / obs.norm)
-
-    ki = 15
-    println("k=$(Grid.K.grid[ki]): ", sum(obs.data[:, ki, 1]) / length(TauGridSize) * Beta / obs.norm)
+    for ki in 1:KGridSize
+        println("k=$(Grid.K.grid[ki]): ", sum(obs.data[:, ki, 1]) / length(TauGridSize) * Beta / obs.norm * obs.phy)
+    end
 
     # println(obs.data[1,1,1], "norm:", obs.norm)
 

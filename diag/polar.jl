@@ -66,8 +66,8 @@ function eval(polar::Polarization)
         # println(varT[LastTidx])
         # println(norm(varK[1]), ", ", norm(varK[2]))
         # println(varK[1])
-        # gWeight = green(Tau, varK[2]) * green(-Tau, varK[2] + varK[1])
-        gWeight = green(Tau, varK[2]) * green(-Tau, varK[2] + Mom(Kf, 0.0, 0.0))
+        gWeight = green(Tau, varK[2]) * green(-Tau, varK[2] + varK[1])
+        # gWeight = green(Tau, varK[2]) * green(-Tau, varK[2] + Mom(Kf, 0.0, 0.0))
         # gWeight = green(Tau, varK[2]) * green(-Tau, varK[2])
         # @assert isinf(gWeight) == false "Green's fucntion is inf at step $(Main.Curr.step)"
         # println(gWeight)
@@ -84,7 +84,7 @@ function eval(polar::Polarization)
     w = 0.0
     weight = polar.ver4.weight
     for (i, gidx) in polar.Gidx
-        temp = (SPIN^2 * weight[i].dir + SPIN * weight[i].ex)
+        temp = (SPIN^2 * weight[i][DI] + SPIN * weight[i][EX])
         for gidx in polar.Gidx
             temp *= G.weight[gidx]
         end

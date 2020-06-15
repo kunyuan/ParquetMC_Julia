@@ -169,7 +169,7 @@ end
 function eval(ver4::Ver4, KinL, KoutL, KinR, KoutR, Kidx::Int, fast = false)
     if ver4.loopNum == 0
         DiagType == POLAR ?
-        ver4.weight[1] = interaction(KinL, KoutL, KinR, KoutR, ver4.inBox, norm(varK[0])) :
+        ver4.weight[1] = interaction(KinL, KoutL, KinR, KoutR, ver4.inBox, norm(varK[1])) :
         ver4.weight[1] = interaction(KinL, KoutL, KinR, KoutR, ver4.inBox)
         return
     end

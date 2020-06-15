@@ -3,11 +3,11 @@ const GAMMA, SIGMA, POLAR, DELTA = 1, 2, 3, 4
 const DiagType = POLAR
 # const DiagType = GAMMA
 const Order = 1
-const TotalBlock = 401
+const TotalBlock = 101
 const beta, Rs, Mass2, Lambda, maxK = 40.0, 1.0, 0.0, 1.0, 3.0
-const ReWeight = [1.0, 0.1, 30.0, 1.0, 0.2, 0.1, 0.01]
+const ReWeight = [1.0, 0.1, 30.0, 1.0, 0.2, 0.1, 0.01, 0.01]
 const DIM, SPIN = 3, 2
-const BoldG, BoldVer4 = true, true
+const BoldG, BoldVer = true, true
 const TauGridSize, KGridSize, AngGridSize = 128, 64, 64
 const PrintTime, SaveTime, ReWeightTime, MessageTime, CollectTime = 5, 10, 30, 10, 10
 
@@ -63,7 +63,10 @@ end
 
 @inline lastInnerKidx(order) = firstInnerKidx() + order - 1
 
-
+# import Yeppp
+# @inline dot(k, q) = Yeppp.dot(k, q)
+# @inline norm(k) = sqrt(dot(k, k))
+# @inline squaredNorm(k) = dot(k, k)
 @inline squaredNorm(k) = DIM == 3 ? k[1]^2 + k[2]^2 + k[3]^2 : k[1]^2 + k[2]^2
 @inline norm(k) = DIM == 3 ? sqrt(k[1]^2 + k[2]^2 + k[3]^2) : sqrt(k[1]^2 + k[2]^2)
 @inline dot(k, q) =

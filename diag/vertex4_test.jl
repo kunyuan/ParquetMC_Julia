@@ -69,7 +69,7 @@ function testOneLoopVer4(curr)
     testWeight = weight - cweight
 
     refweight = evalOneLoopVer4([U, UC])
-    @assert isapprox(testWeight, refweight, rtol = 1.0e-16) "\n$testWeight != $refweight\nGG: $gweight, GG_counter: $gweightbox\nLver: $Lver, Rver: $Rver"
+    @assert isapprox(testWeight, refweight, rtol = 1.0e-15) "\n$testWeight != $refweight\nGG: $gweight, GG_counter: $gweightbox\nLver: $Lver, Rver: $Rver"
 
     Ks = inR + inL - K
     Lver = interaction(inL, Ks, inR, K, false)
