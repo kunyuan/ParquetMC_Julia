@@ -97,7 +97,7 @@ for block in 1:TotalBlock
         elseif x < 2.0 / 6.0
             Markov.decreaseOrder()
         elseif x < 3.0 / 6.0
-            # Markov.changeK()
+            Markov.changeK()
         elseif x < 4.0 / 6.0
             Markov.changeTau()
         elseif x < 5.0 / 6.0

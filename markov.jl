@@ -70,11 +70,11 @@ function eval(order)
         return 1.0
     else
         Tau = varT[LastTidx] - varT[1]
-        @assert 0.0 < Tau < Beta "t out of range"
-        @assert abs(Grid.K.grid[curr.extKidx] - curr.K[1][1]) < 1.0e-15 "ExtK doesn't match!"
-        @assert abs(Grid.tau.grid[curr.extTidx] - curr.T[LastTidx]) < 1.0e-15 "ExtT doesn't match! $(Grid.tau.grid[curr.extTidx]) vs $(curr.T[LastTidx])"
-        @assert 0 < curr.extKidx <= KGridSize "K out of range"
-        @assert 0 < curr.extTidx <= TauGridSize "Tau out of range"
+        # @assert 0.0 < Tau < Beta "t out of range"
+        # @assert abs(Grid.K.grid[curr.extKidx] - curr.K[1][1]) < 1.0e-15 "ExtK doesn't match!"
+        # @assert abs(Grid.tau.grid[curr.extTidx] - curr.T[LastTidx]) < 1.0e-15 "ExtT doesn't match! $(Grid.tau.grid[curr.extTidx]) vs $(curr.T[LastTidx])"
+        # @assert 0 < curr.extKidx <= KGridSize "K out of range"
+        # @assert 0 < curr.extTidx <= TauGridSize "Tau out of range"
         gWeight = green(Tau, varK[2]) * green(-Tau, varK[2] + varK[1])
         return -SPIN * gWeight * PhaseFactor
     end
@@ -125,17 +125,17 @@ end
 @inline accept(name) = (Accepted[name, curr.order + 1] += 1)
 
 function increaseOrder()
-    curr.order == Order && return # already at the highest order
+    (curr.order == Order) && return # already at the highest order
     newOrder = curr.order + 1
     prop = 1.0
     if curr.order == 0
         # create new external Tau
-        # curr.extTidx, propT = createExtIdx(TauGridSize)
-        # varT[LastTidx] = Grid.tau.grid[curr.extTidx]
+        curr.extTidx, propT = createExtIdx(TauGridSize)
+        varT[LastTidx] = Grid.tau.grid[curr.extTidx]
 
-        # curr.extKidx, propK = createExtIdx(KGridSize)
-        # varK[1][1] = Grid.K.grid[curr.extKidx]
-        # prop = propT * propK
+        curr.extKidx, propK = createExtIdx(KGridSize)
+        varK[1][1] = Grid.K.grid[curr.extKidx]
+        prop = propT * propK
     else
         # create new internal Tau
         varT[lastInnerTidx(newOrder)], prop = createTau()
@@ -158,13 +158,13 @@ function increaseOrder()
 end
 
 function decreaseOrder()
-    curr.order == 0 && return
+    (curr.order == 0) && return
     newOrder = curr.order - 1
     prop = 1.0
     if newOrder == 0
         # remove external Tau 
-        # prop *= removeExtIdx(TauGridSize)
-        # prop *= removeExtIdx(KGridSize)
+        prop *= removeExtIdx(TauGridSize)
+        prop *= removeExtIdx(KGridSize)
     else
         # remove internal Tau
         prop *= removeTau()
@@ -189,7 +189,7 @@ end
 
 function changeK()
     # return
-    curr.order == 0 && return
+    (curr.order == 0) && return
     loopidx = rand(rng, firstInnerKidx():lastInnerKidx(curr.order))
     oldK = copy(varK[loopidx])
     prop = shiftK!(oldK, varK[loopidx])
@@ -205,7 +205,7 @@ function changeK()
 end
 
 function changeExtTau()
-    # curr.order == 0 && return
+    curr.order == 0 && return
     oldTidx = curr.extTidx
     curr.extTidx, prop = shiftExtIdx(TauGridSize)
     varT[LastTidx] = Grid.tau.grid[curr.extTidx]
@@ -221,7 +221,7 @@ function changeExtTau()
 end
 
 function changeExtK()
-    # curr.order == 0 && return
+    curr.order == 0 && return
     oldKidx = curr.extKidx
     prop = 1.0
     if DiagType == POLAR
@@ -277,7 +277,7 @@ end
 
     dK = Kf / 2.0
     Kamp = Kf + (rand(rng) - 0.5) * 2.0 * dK
-    Kamp <= 0.0 && return 0.0
+    (Kamp <= 0.0) && return 0.0
     # Kf-dK<Kamp<Kf+dK 
     ϕ = 2π * rand(rng)
     if DIM == 3
@@ -314,7 +314,7 @@ end
     # (Kamp < Kf - dK || Kamp > Kf + dK) && return 0.0
     if DIM == 3
         sinθ = sqrt(oldK[1]^2 + oldK[2]^2) / Kamp
-        sinθ < 1.0e-15  && return 0.0
+        (sinθ < 1.0e-15)  && return 0.0
         return 1.0 / (2dK * 2π * π * sinθ * Kamp^2)
     else  # DIM==2
         return 1.0 / (2dK * 2π * Kamp)

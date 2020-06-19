@@ -12,7 +12,7 @@ mutable struct OneBody
     phy::Float # the physcial weight of the normalization diagrams
     # static::MArray{(Order, KGridSize),Float}
     data::Array{Float,3} # order, kgrid, taugrid
-    OneBody() = new(1.0e-10, KGridSize, zeros(Float,  TauGridSize, KGridSize, Order))
+    OneBody() = new(1.0e-10, 1.0, zeros(Float,  TauGridSize, KGridSize, Order))
 end
 
 function measure(obs::OneBody, weight, factor)
